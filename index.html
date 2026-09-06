@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -255,6 +255,12 @@
     font-size: 17px; line-height: 38px; padding: 0; text-align: center; cursor: pointer;
   }
   footer { margin-top: 28px; font-size: 12px; color: var(--dim); text-align: center; }
+  footer .lang-row { margin-top: 10px; }
+  footer select {
+    font: inherit; font-size: 16px;   /* 16px:iOS Safari 聚焦不放大的下限 */
+    color: var(--dim); background: var(--card);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+  }
 </style>
 </head>
 <body>
@@ -264,41 +270,44 @@
     <h1>{{TITLE}}</h1>
     <div class="dot-wrap">
       <span class="dot-text" id="dotText"></span>
-      <button class="dot" id="dot" type="button" aria-label="保存状态"></button>
+      <button class="dot" id="dot" type="button" aria-label="保存状态" data-i18n-aria="saveState"></button>
     </div>
   </div>
   <div class="batch-bar">
-    <button class="chip batch-picker" id="batchPicker" type="button" aria-expanded="false">☰ 批次</button>
+    <button class="chip batch-picker" id="batchPicker" type="button" aria-expanded="false" data-i18n="batchBtn">☰ 批次</button>
     <div class="chips batches" id="chips"></div>
   </div>
   <div class="batch-panel" id="batchPanel" hidden></div>
   <div class="chips filters" id="filters"></div>
-  <p class="progress" id="progress">正在载入……</p>
+  <p class="progress" id="progress" data-i18n="loading">正在载入……</p>
 </header>
 
 <main id="list"></main>
-<p class="empty" id="listEmpty" hidden>没有选中任何批次——点上面的芯片选一个。</p>
+<p class="empty" id="listEmpty" hidden data-i18n="noBatch">没有选中任何批次——点上面的芯片选一个。</p>
 
 <section id="bugzone">
-  <h2 class="sec">新 Bug</h2>
+  <h2 class="sec" data-i18n="bugsHeading">新 Bug</h2>
   <p class="zone-hint" id="bugHint"></p>
-  <p class="empty" id="bugEmpty">测出清单以外的问题，在这里记一条。</p>
+  <p class="empty" id="bugEmpty" data-i18n="bugsEmpty">测出清单以外的问题，在这里记一条。</p>
   <div id="bugs"></div>
-  <button class="add" id="addBug" type="button">＋ 添加新 Bug</button>
+  <button class="add" id="addBug" type="button" data-i18n="addBug">＋ 添加新 Bug</button>
 </section>
 
 <section id="reqzone">
-  <h2 class="sec">新需求</h2>
+  <h2 class="sec" data-i18n="reqsHeading">新需求</h2>
   <p class="zone-hint" id="reqHint"></p>
-  <p class="empty" id="reqEmpty">不是 Bug、是想要的新功能或改进，在这里记一条。</p>
+  <p class="empty" id="reqEmpty" data-i18n="reqsEmpty">不是 Bug、是想要的新功能或改进，在这里记一条。</p>
   <div id="reqs"></div>
-  <button class="add" id="addReq" type="button">＋ 添加新需求</button>
+  <button class="add" id="addReq" type="button" data-i18n="addReq">＋ 添加新需求</button>
 </section>
 
-<footer>数据存在电脑上的 {{DATA_DIR}}，关掉浏览器、换台设备都不丢。</footer>
+<footer>
+  <span id="footerText" data-dir="{{DATA_DIR}}"></span>
+  <div class="lang-row"><select id="langSel" aria-label="Language"></select></div>
+</footer>
 
 <div class="viewer" id="viewer" hidden>
-  <button class="viewer-close" id="viewerClose" type="button" aria-label="关闭">✕</button>
+  <button class="viewer-close" id="viewerClose" type="button" aria-label="关闭" data-i18n-aria="close">✕</button>
 </div>
 
 <script>
@@ -309,6 +318,328 @@
   var LEGACY_LS_KEY = "feedback-station.batches";   // 旧版存过的批次选择,现已不持久化,顺手清掉
   var VIDEO_EXT = ["mov", "mp4", "m4v", "avi", "mkv", "webm", "3gp"];
 
+  // ── 界面多语言 ───────────────────────────────────────────────────────
+  // 文案全部走 t(key);语言取 ?lang= → localStorage → navigator.languages → en。
+  // 清单内容(批次标题、条目文案)是谁写的就什么语言,这里不翻译。
+  var LANG_KEY = "feedback-station.lang";
+  var LANGS = ["zh-CN", "zh-TW", "en", "ja", "ko", "es", "fr", "de", "pt", "ru"];
+  var LANG_NAMES = {
+    "zh-CN": "简体中文", "zh-TW": "繁體中文", en: "English", ja: "日本語", ko: "한국어",
+    es: "Español", fr: "Français", de: "Deutsch", pt: "Português", ru: "Русский"
+  };
+  var I18N = {
+    "zh-CN": {
+      defaultTitle: "真机反馈", batchBtn: "☰ 批次", loading: "正在载入……",
+      noBatch: "没有选中任何批次——点上面的芯片选一个。",
+      bugsHeading: "新 Bug", bugsEmpty: "测出清单以外的问题，在这里记一条。", addBug: "＋ 添加新 Bug",
+      reqsHeading: "新需求", reqsEmpty: "不是 Bug、是想要的新功能或改进，在这里记一条。", addReq: "＋ 添加新需求",
+      footer: "数据存在电脑上的 {dir}，关掉浏览器、换台设备都不丢。",
+      saveState: "保存状态", close: "关闭", langLabel: "语言",
+      filterLabel: "只看", fAll: "全部", fFail: "未通过", fBlocked: "未测", fPass: "通过", fNone: "未勾选",
+      pass: "通过", fail: "未通过", blocked: "未测试",
+      noteToggle: "＋ 补充优化建议（选填）",
+      phFail: "哪里不对？怎么复现？", phBlocked: "为什么先没测？之后怎么补测？（选填）", phPass: "通过。有想顺手提的优化改进吗？（选填）",
+      addFiles: "添加截图/录屏", attachment: "附件", removeFile: "删除这个附件", "delete": "删除",
+      entryTitlePh: "一句话标题",
+      bugNotePh: "详细描述：怎么复现？本该是什么样？", reqNotePh: "详细描述：想要什么？期待是什么样？",
+      bugConfirm: "删掉这条 Bug？附件也会一起删。", reqConfirm: "删掉这条需求？附件也会一起删。",
+      bugHint: "新 Bug 记入：{batch}", reqHint: "新需求记入：{batch}",
+      bugHintNone: "先在上面选一个批次，新 Bug 才知道该记到哪一批。", reqHintNone: "先在上面选一个批次，新需求才知道该记到哪一批。",
+      dateParen: "（{date}）",
+      saving: "保存中", saveFailed: "保存失败，点这里重试", saved: "已存",
+      progress: "已测 {tested} / {total} · 未通过 {fail} · 未测 {blocked} · 新 Bug {bugs} · 新需求 {reqs}",
+      latestOnly: "只看最新", selectAll: "全选", clear: "清空",
+      more: "↓ 往下滑看更早的 {n} 批",
+      loadError: "载入失败：{msg}，下拉刷新重试。"
+    },
+    "zh-TW": {
+      defaultTitle: "真機回饋", batchBtn: "☰ 批次", loading: "載入中……",
+      noBatch: "尚未選取任何批次——點上面的標籤選一個。",
+      bugsHeading: "新 Bug", bugsEmpty: "測出清單以外的問題，在這裡記一條。", addBug: "＋ 新增 Bug",
+      reqsHeading: "新需求", reqsEmpty: "不是 Bug、而是想要的新功能或改進，在這裡記一條。", addReq: "＋ 新增需求",
+      footer: "資料存在電腦上的 {dir}，關掉瀏覽器、換台裝置都不會遺失。",
+      saveState: "儲存狀態", close: "關閉", langLabel: "語言",
+      filterLabel: "只看", fAll: "全部", fFail: "未通過", fBlocked: "未測", fPass: "通過", fNone: "未勾選",
+      pass: "通過", fail: "未通過", blocked: "未測試",
+      noteToggle: "＋ 補充優化建議（選填）",
+      phFail: "哪裡不對？怎麼重現？", phBlocked: "為什麼先沒測？之後怎麼補測？（選填）", phPass: "通過。有想順手提的優化改進嗎？（選填）",
+      addFiles: "新增截圖/錄影", attachment: "附件", removeFile: "刪除這個附件", "delete": "刪除",
+      entryTitlePh: "一句話標題",
+      bugNotePh: "詳細描述：怎麼重現？本來應該是什麼樣？", reqNotePh: "詳細描述：想要什麼？期待是什麼樣？",
+      bugConfirm: "刪掉這條 Bug？附件也會一起刪。", reqConfirm: "刪掉這條需求？附件也會一起刪。",
+      bugHint: "新 Bug 記入：{batch}", reqHint: "新需求記入：{batch}",
+      bugHintNone: "先在上面選一個批次，新 Bug 才知道該記到哪一批。", reqHintNone: "先在上面選一個批次，新需求才知道該記到哪一批。",
+      dateParen: "（{date}）",
+      saving: "儲存中", saveFailed: "儲存失敗，點這裡重試", saved: "已儲存",
+      progress: "已測 {tested} / {total} · 未通過 {fail} · 未測 {blocked} · 新 Bug {bugs} · 新需求 {reqs}",
+      latestOnly: "只看最新", selectAll: "全選", clear: "清空",
+      more: "↓ 往下滑看更早的 {n} 批",
+      loadError: "載入失敗：{msg}，下拉重新整理再試。"
+    },
+    en: {
+      defaultTitle: "Device Test Feedback", batchBtn: "☰ Batches", loading: "Loading…",
+      noBatch: "No batch selected — tap a chip above to pick one.",
+      bugsHeading: "New bugs", bugsEmpty: "Found a problem that isn't on the checklist? Log it here.", addBug: "+ Add bug",
+      reqsHeading: "Feature requests", reqsEmpty: "Not a bug, but something you'd like added or improved? Log it here.", addReq: "+ Add request",
+      footer: "Everything is saved on the computer at {dir} — closing the browser or switching devices loses nothing.",
+      saveState: "Save status", close: "Close", langLabel: "Language",
+      filterLabel: "Show", fAll: "All", fFail: "Failed", fBlocked: "Not tested", fPass: "Passed", fNone: "Unmarked",
+      pass: "Pass", fail: "Fail", blocked: "Not tested",
+      noteToggle: "+ Add a suggestion (optional)",
+      phFail: "What's wrong? How to reproduce?", phBlocked: "Why was it skipped? How will it be tested later? (optional)", phPass: "Passed. Any improvement you'd like to suggest? (optional)",
+      addFiles: "Add screenshot / recording", attachment: "Attachment", removeFile: "Remove this attachment", "delete": "Delete",
+      entryTitlePh: "One-line title",
+      bugNotePh: "Details: how to reproduce? What should happen instead?", reqNotePh: "Details: what do you want? What should it look like?",
+      bugConfirm: "Delete this bug? Its attachments will be deleted too.", reqConfirm: "Delete this request? Its attachments will be deleted too.",
+      bugHint: "New bugs go to: {batch}", reqHint: "New requests go to: {batch}",
+      bugHintNone: "Select a batch above first so new bugs know where to go.", reqHintNone: "Select a batch above first so new requests know where to go.",
+      dateParen: " ({date})",
+      saving: "Saving…", saveFailed: "Save failed — tap to retry", saved: "Saved",
+      progress: "Tested {tested} / {total} · Failed {fail} · Not tested {blocked} · Bugs {bugs} · Requests {reqs}",
+      latestOnly: "Latest only", selectAll: "Select all", clear: "Clear",
+      more: "↓ Scroll for {n} earlier batches",
+      loadError: "Failed to load: {msg}. Pull down to refresh."
+    },
+    ja: {
+      defaultTitle: "実機テストフィードバック", batchBtn: "☰ バッチ", loading: "読み込み中…",
+      noBatch: "バッチが選択されていません。上のチップから選んでください。",
+      bugsHeading: "新しいバグ", bugsEmpty: "チェックリストにない問題を見つけたら、ここに記録してください。", addBug: "＋ バグを追加",
+      reqsHeading: "新しい要望", reqsEmpty: "バグではなく、欲しい機能や改善点はここに記録してください。", addReq: "＋ 要望を追加",
+      footer: "データはパソコンの {dir} に保存されます。ブラウザを閉じても、端末を変えても消えません。",
+      saveState: "保存状態", close: "閉じる", langLabel: "言語",
+      filterLabel: "表示", fAll: "すべて", fFail: "不合格", fBlocked: "未テスト", fPass: "合格", fNone: "未選択",
+      pass: "合格", fail: "不合格", blocked: "未テスト",
+      noteToggle: "＋ 改善提案を追加（任意）",
+      phFail: "どこが問題ですか？再現手順は？", phBlocked: "なぜテストしていませんか？後でどうテストしますか？（任意）", phPass: "合格。ついでに改善提案があれば（任意）",
+      addFiles: "スクリーンショット/録画を追加", attachment: "添付ファイル", removeFile: "この添付ファイルを削除", "delete": "削除",
+      entryTitlePh: "一行のタイトル",
+      bugNotePh: "詳細：再現手順は？本来どうあるべきですか？", reqNotePh: "詳細：何が欲しいですか？どうなってほしいですか？",
+      bugConfirm: "このバグを削除しますか？添付ファイルも削除されます。", reqConfirm: "この要望を削除しますか？添付ファイルも削除されます。",
+      bugHint: "新しいバグの記録先：{batch}", reqHint: "新しい要望の記録先：{batch}",
+      bugHintNone: "先に上でバッチを選んでください。新しいバグの記録先が決まります。", reqHintNone: "先に上でバッチを選んでください。新しい要望の記録先が決まります。",
+      dateParen: "（{date}）",
+      saving: "保存中", saveFailed: "保存に失敗。タップして再試行", saved: "保存済み",
+      progress: "テスト済み {tested} / {total} · 不合格 {fail} · 未テスト {blocked} · バグ {bugs} · 要望 {reqs}",
+      latestOnly: "最新のみ", selectAll: "すべて選択", clear: "クリア",
+      more: "↓ 下にスクロールして以前の {n} バッチを表示",
+      loadError: "読み込みに失敗しました：{msg}。下に引っ張って更新してください。"
+    },
+    ko: {
+      defaultTitle: "실기기 테스트 피드백", batchBtn: "☰ 배치", loading: "불러오는 중…",
+      noBatch: "선택된 배치가 없습니다. 위의 칩에서 하나를 선택하세요.",
+      bugsHeading: "새 버그", bugsEmpty: "체크리스트에 없는 문제를 발견했다면 여기에 기록하세요.", addBug: "＋ 버그 추가",
+      reqsHeading: "새 요청", reqsEmpty: "버그가 아니라 원하는 기능이나 개선 사항이라면 여기에 기록하세요.", addReq: "＋ 요청 추가",
+      footer: "데이터는 컴퓨터의 {dir}에 저장됩니다. 브라우저를 닫거나 기기를 바꿔도 사라지지 않습니다.",
+      saveState: "저장 상태", close: "닫기", langLabel: "언어",
+      filterLabel: "보기", fAll: "전체", fFail: "실패", fBlocked: "미테스트", fPass: "통과", fNone: "미선택",
+      pass: "통과", fail: "실패", blocked: "미테스트",
+      noteToggle: "＋ 개선 제안 추가 (선택)",
+      phFail: "무엇이 잘못됐나요? 재현 방법은?", phBlocked: "왜 테스트하지 않았나요? 나중에 어떻게 테스트할까요? (선택)", phPass: "통과. 개선 제안이 있다면 적어 주세요 (선택)",
+      addFiles: "스크린샷/녹화 추가", attachment: "첨부 파일", removeFile: "이 첨부 파일 삭제", "delete": "삭제",
+      entryTitlePh: "한 줄 제목",
+      bugNotePh: "상세 설명: 재현 방법은? 원래 어떻게 되어야 하나요?", reqNotePh: "상세 설명: 무엇을 원하나요? 어떤 모습이길 기대하나요?",
+      bugConfirm: "이 버그를 삭제할까요? 첨부 파일도 함께 삭제됩니다.", reqConfirm: "이 요청을 삭제할까요? 첨부 파일도 함께 삭제됩니다.",
+      bugHint: "새 버그 기록 대상: {batch}", reqHint: "새 요청 기록 대상: {batch}",
+      bugHintNone: "먼저 위에서 배치를 선택하세요. 새 버그가 어느 배치에 기록될지 정해집니다.", reqHintNone: "먼저 위에서 배치를 선택하세요. 새 요청이 어느 배치에 기록될지 정해집니다.",
+      dateParen: " ({date})",
+      saving: "저장 중", saveFailed: "저장 실패, 눌러서 다시 시도", saved: "저장됨",
+      progress: "테스트 완료 {tested} / {total} · 실패 {fail} · 미테스트 {blocked} · 버그 {bugs} · 요청 {reqs}",
+      latestOnly: "최신만", selectAll: "전체 선택", clear: "지우기",
+      more: "↓ 아래로 스크롤하여 이전 {n}개 배치 보기",
+      loadError: "불러오기 실패: {msg}. 아래로 당겨 새로고침하세요."
+    },
+    es: {
+      defaultTitle: "Pruebas en dispositivo", batchBtn: "☰ Lotes", loading: "Cargando…",
+      noBatch: "Ningún lote seleccionado. Toca un chip arriba para elegir uno.",
+      bugsHeading: "Nuevos errores", bugsEmpty: "¿Encontraste un problema que no está en la lista? Anótalo aquí.", addBug: "+ Añadir error",
+      reqsHeading: "Nuevas peticiones", reqsEmpty: "¿No es un error, sino algo que te gustaría añadir o mejorar? Anótalo aquí.", addReq: "+ Añadir petición",
+      footer: "Todo se guarda en el ordenador, en {dir}. Cerrar el navegador o cambiar de dispositivo no pierde nada.",
+      saveState: "Estado de guardado", close: "Cerrar", langLabel: "Idioma",
+      filterLabel: "Ver", fAll: "Todo", fFail: "Fallidos", fBlocked: "Sin probar", fPass: "Aprobados", fNone: "Sin marcar",
+      pass: "Aprobado", fail: "Fallido", blocked: "Sin probar",
+      noteToggle: "+ Añadir una sugerencia (opcional)",
+      phFail: "¿Qué falla? ¿Cómo se reproduce?", phBlocked: "¿Por qué no se probó? ¿Cómo se probará después? (opcional)", phPass: "Aprobado. ¿Alguna mejora que sugerir? (opcional)",
+      addFiles: "Añadir captura/grabación", attachment: "Adjunto", removeFile: "Eliminar este adjunto", "delete": "Eliminar",
+      entryTitlePh: "Título en una línea",
+      bugNotePh: "Detalles: ¿cómo se reproduce? ¿Qué debería pasar?", reqNotePh: "Detalles: ¿qué quieres? ¿Cómo debería ser?",
+      bugConfirm: "¿Eliminar este error? Sus adjuntos también se eliminarán.", reqConfirm: "¿Eliminar esta petición? Sus adjuntos también se eliminarán.",
+      bugHint: "Los nuevos errores van a: {batch}", reqHint: "Las nuevas peticiones van a: {batch}",
+      bugHintNone: "Selecciona primero un lote arriba para saber dónde registrar los errores.", reqHintNone: "Selecciona primero un lote arriba para saber dónde registrar las peticiones.",
+      dateParen: " ({date})",
+      saving: "Guardando…", saveFailed: "Error al guardar, toca para reintentar", saved: "Guardado",
+      progress: "Probados {tested} / {total} · Fallidos {fail} · Sin probar {blocked} · Errores {bugs} · Peticiones {reqs}",
+      latestOnly: "Solo el último", selectAll: "Seleccionar todo", clear: "Limpiar",
+      more: "↓ Desliza para ver {n} lotes anteriores",
+      loadError: "Error al cargar: {msg}. Desliza hacia abajo para recargar."
+    },
+    fr: {
+      defaultTitle: "Tests sur appareil", batchBtn: "☰ Lots", loading: "Chargement…",
+      noBatch: "Aucun lot sélectionné. Touchez une puce ci-dessus pour en choisir un.",
+      bugsHeading: "Nouveaux bugs", bugsEmpty: "Un problème absent de la liste ? Notez-le ici.", addBug: "+ Ajouter un bug",
+      reqsHeading: "Nouvelles demandes", reqsEmpty: "Pas un bug, mais une fonctionnalité ou une amélioration souhaitée ? Notez-la ici.", addReq: "+ Ajouter une demande",
+      footer: "Tout est enregistré sur l'ordinateur dans {dir}. Fermer le navigateur ou changer d'appareil ne perd rien.",
+      saveState: "État de l'enregistrement", close: "Fermer", langLabel: "Langue",
+      filterLabel: "Afficher", fAll: "Tout", fFail: "Échoués", fBlocked: "Non testés", fPass: "Réussis", fNone: "Non cochés",
+      pass: "Réussi", fail: "Échoué", blocked: "Non testé",
+      noteToggle: "+ Ajouter une suggestion (facultatif)",
+      phFail: "Qu'est-ce qui ne va pas ? Comment reproduire ?", phBlocked: "Pourquoi non testé ? Comment le tester plus tard ? (facultatif)", phPass: "Réussi. Une amélioration à suggérer ? (facultatif)",
+      addFiles: "Ajouter capture/enregistrement", attachment: "Pièce jointe", removeFile: "Supprimer cette pièce jointe", "delete": "Supprimer",
+      entryTitlePh: "Titre en une ligne",
+      bugNotePh: "Détails : comment reproduire ? Que devrait-il se passer ?", reqNotePh: "Détails : que souhaitez-vous ? À quoi cela devrait-il ressembler ?",
+      bugConfirm: "Supprimer ce bug ? Ses pièces jointes seront aussi supprimées.", reqConfirm: "Supprimer cette demande ? Ses pièces jointes seront aussi supprimées.",
+      bugHint: "Les nouveaux bugs vont dans : {batch}", reqHint: "Les nouvelles demandes vont dans : {batch}",
+      bugHintNone: "Sélectionnez d'abord un lot ci-dessus pour savoir où enregistrer les bugs.", reqHintNone: "Sélectionnez d'abord un lot ci-dessus pour savoir où enregistrer les demandes.",
+      dateParen: " ({date})",
+      saving: "Enregistrement…", saveFailed: "Échec de l'enregistrement, touchez pour réessayer", saved: "Enregistré",
+      progress: "Testés {tested} / {total} · Échoués {fail} · Non testés {blocked} · Bugs {bugs} · Demandes {reqs}",
+      latestOnly: "Dernier seulement", selectAll: "Tout sélectionner", clear: "Effacer",
+      more: "↓ Faites défiler pour voir {n} lots plus anciens",
+      loadError: "Échec du chargement : {msg}. Tirez vers le bas pour actualiser."
+    },
+    de: {
+      defaultTitle: "Gerätetest-Feedback", batchBtn: "☰ Chargen", loading: "Wird geladen…",
+      noBatch: "Keine Charge ausgewählt. Tippe oben auf einen Chip, um eine auszuwählen.",
+      bugsHeading: "Neue Bugs", bugsEmpty: "Ein Problem gefunden, das nicht auf der Liste steht? Hier eintragen.", addBug: "+ Bug hinzufügen",
+      reqsHeading: "Neue Wünsche", reqsEmpty: "Kein Bug, sondern eine gewünschte Funktion oder Verbesserung? Hier eintragen.", addReq: "+ Wunsch hinzufügen",
+      footer: "Alles wird auf dem Computer unter {dir} gespeichert. Browser schließen oder Gerät wechseln – nichts geht verloren.",
+      saveState: "Speicherstatus", close: "Schließen", langLabel: "Sprache",
+      filterLabel: "Anzeigen", fAll: "Alle", fFail: "Fehlgeschlagen", fBlocked: "Ungetestet", fPass: "Bestanden", fNone: "Unmarkiert",
+      pass: "Bestanden", fail: "Fehlgeschlagen", blocked: "Ungetestet",
+      noteToggle: "+ Verbesserungsvorschlag ergänzen (optional)",
+      phFail: "Was ist falsch? Wie lässt es sich reproduzieren?", phBlocked: "Warum nicht getestet? Wie wird später getestet? (optional)", phPass: "Bestanden. Gibt es einen Verbesserungsvorschlag? (optional)",
+      addFiles: "Screenshot/Aufnahme hinzufügen", attachment: "Anhang", removeFile: "Diesen Anhang löschen", "delete": "Löschen",
+      entryTitlePh: "Einzeiliger Titel",
+      bugNotePh: "Details: Wie reproduzieren? Was sollte stattdessen passieren?", reqNotePh: "Details: Was wünschst du dir? Wie sollte es aussehen?",
+      bugConfirm: "Diesen Bug löschen? Die Anhänge werden ebenfalls gelöscht.", reqConfirm: "Diesen Wunsch löschen? Die Anhänge werden ebenfalls gelöscht.",
+      bugHint: "Neue Bugs gehen an: {batch}", reqHint: "Neue Wünsche gehen an: {batch}",
+      bugHintNone: "Wähle oben zuerst eine Charge, damit neue Bugs zugeordnet werden können.", reqHintNone: "Wähle oben zuerst eine Charge, damit neue Wünsche zugeordnet werden können.",
+      dateParen: " ({date})",
+      saving: "Wird gespeichert…", saveFailed: "Speichern fehlgeschlagen, zum Wiederholen tippen", saved: "Gespeichert",
+      progress: "Getestet {tested} / {total} · Fehlgeschlagen {fail} · Ungetestet {blocked} · Bugs {bugs} · Wünsche {reqs}",
+      latestOnly: "Nur neueste", selectAll: "Alle auswählen", clear: "Leeren",
+      more: "↓ Nach unten scrollen für {n} ältere Chargen",
+      loadError: "Laden fehlgeschlagen: {msg}. Zum Aktualisieren nach unten ziehen."
+    },
+    pt: {
+      defaultTitle: "Testes em dispositivo", batchBtn: "☰ Lotes", loading: "Carregando…",
+      noBatch: "Nenhum lote selecionado. Toque em um chip acima para escolher.",
+      bugsHeading: "Novos bugs", bugsEmpty: "Encontrou um problema que não está na lista? Registre aqui.", addBug: "+ Adicionar bug",
+      reqsHeading: "Novas solicitações", reqsEmpty: "Não é um bug, mas algo que você gostaria de adicionar ou melhorar? Registre aqui.", addReq: "+ Adicionar solicitação",
+      footer: "Tudo é salvo no computador em {dir}. Fechar o navegador ou trocar de aparelho não perde nada.",
+      saveState: "Estado do salvamento", close: "Fechar", langLabel: "Idioma",
+      filterLabel: "Ver", fAll: "Tudo", fFail: "Reprovados", fBlocked: "Não testados", fPass: "Aprovados", fNone: "Sem marcação",
+      pass: "Aprovado", fail: "Reprovado", blocked: "Não testado",
+      noteToggle: "+ Adicionar sugestão (opcional)",
+      phFail: "O que está errado? Como reproduzir?", phBlocked: "Por que não foi testado? Como testar depois? (opcional)", phPass: "Aprovado. Alguma melhoria a sugerir? (opcional)",
+      addFiles: "Adicionar captura/gravação", attachment: "Anexo", removeFile: "Remover este anexo", "delete": "Excluir",
+      entryTitlePh: "Título em uma linha",
+      bugNotePh: "Detalhes: como reproduzir? O que deveria acontecer?", reqNotePh: "Detalhes: o que você quer? Como deveria ser?",
+      bugConfirm: "Excluir este bug? Os anexos também serão excluídos.", reqConfirm: "Excluir esta solicitação? Os anexos também serão excluídos.",
+      bugHint: "Novos bugs vão para: {batch}", reqHint: "Novas solicitações vão para: {batch}",
+      bugHintNone: "Selecione um lote acima primeiro para saber onde registrar os bugs.", reqHintNone: "Selecione um lote acima primeiro para saber onde registrar as solicitações.",
+      dateParen: " ({date})",
+      saving: "Salvando…", saveFailed: "Falha ao salvar, toque para tentar de novo", saved: "Salvo",
+      progress: "Testados {tested} / {total} · Reprovados {fail} · Não testados {blocked} · Bugs {bugs} · Solicitações {reqs}",
+      latestOnly: "Só o mais recente", selectAll: "Selecionar tudo", clear: "Limpar",
+      more: "↓ Role para ver {n} lotes anteriores",
+      loadError: "Falha ao carregar: {msg}. Puxe para baixo para atualizar."
+    },
+    ru: {
+      defaultTitle: "Тестирование на устройстве", batchBtn: "☰ Партии", loading: "Загрузка…",
+      noBatch: "Партия не выбрана. Нажмите на чип выше, чтобы выбрать.",
+      bugsHeading: "Новые баги", bugsEmpty: "Нашли проблему, которой нет в списке? Запишите её здесь.", addBug: "+ Добавить баг",
+      reqsHeading: "Новые пожелания", reqsEmpty: "Не баг, а желаемая функция или улучшение? Запишите здесь.", addReq: "+ Добавить пожелание",
+      footer: "Всё сохраняется на компьютере в {dir}. Закрытие браузера или смена устройства ничего не теряет.",
+      saveState: "Статус сохранения", close: "Закрыть", langLabel: "Язык",
+      filterLabel: "Показать", fAll: "Все", fFail: "Провалено", fBlocked: "Не проверено", fPass: "Пройдено", fNone: "Не отмечено",
+      pass: "Пройдено", fail: "Провалено", blocked: "Не проверено",
+      noteToggle: "+ Добавить предложение (необязательно)",
+      phFail: "Что не так? Как воспроизвести?", phBlocked: "Почему не проверено? Как проверить позже? (необязательно)", phPass: "Пройдено. Есть предложения по улучшению? (необязательно)",
+      addFiles: "Добавить скриншот/запись", attachment: "Вложение", removeFile: "Удалить это вложение", "delete": "Удалить",
+      entryTitlePh: "Заголовок в одну строку",
+      bugNotePh: "Подробности: как воспроизвести? Что должно быть вместо этого?", reqNotePh: "Подробности: что нужно? Как это должно выглядеть?",
+      bugConfirm: "Удалить этот баг? Вложения тоже будут удалены.", reqConfirm: "Удалить это пожелание? Вложения тоже будут удалены.",
+      bugHint: "Новые баги записываются в: {batch}", reqHint: "Новые пожелания записываются в: {batch}",
+      bugHintNone: "Сначала выберите партию выше, чтобы знать, куда записывать баги.", reqHintNone: "Сначала выберите партию выше, чтобы знать, куда записывать пожелания.",
+      dateParen: " ({date})",
+      saving: "Сохранение…", saveFailed: "Не удалось сохранить, нажмите для повтора", saved: "Сохранено",
+      progress: "Проверено {tested} / {total} · Провалено {fail} · Не проверено {blocked} · Баги {bugs} · Пожелания {reqs}",
+      latestOnly: "Только последняя", selectAll: "Выбрать все", clear: "Очистить",
+      more: "↓ Прокрутите, чтобы увидеть ещё {n} партий",
+      loadError: "Ошибка загрузки: {msg}. Потяните вниз, чтобы обновить."
+    }
+  };
+
+  function normLang(tag) {
+    tag = String(tag || "").toLowerCase();
+    if (!tag) { return null; }
+    if (tag.indexOf("zh") === 0) { return /hant|tw|hk|mo/.test(tag) ? "zh-TW" : "zh-CN"; }
+    var base = tag.split("-")[0];
+    return LANGS.indexOf(base) >= 0 ? base : null;
+  }
+
+  function pickLang() {
+    var q = null;
+    try { q = new URLSearchParams(location.search).get("lang"); } catch (e) { q = null; }
+    var fromQuery = normLang(q);
+    if (fromQuery) {
+      try { localStorage.setItem(LANG_KEY, fromQuery); } catch (e) { /* 无痕模式 */ }
+      return fromQuery;
+    }
+    var stored = null;
+    try { stored = normLang(localStorage.getItem(LANG_KEY)); } catch (e) { stored = null; }
+    if (stored) { return stored; }
+    var list = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language];
+    for (var i = 0; i < list.length; i += 1) {
+      var hit = normLang(list[i]);
+      if (hit) { return hit; }
+    }
+    return "en";
+  }
+
+  var LANG = pickLang();
+
+  function t(key, vars) {
+    var s = (I18N[LANG] && I18N[LANG][key]) || I18N.en[key] || key;
+    if (vars) {
+      for (var k in vars) {
+        if (Object.prototype.hasOwnProperty.call(vars, k)) { s = s.split("{" + k + "}").join(String(vars[k])); }
+      }
+    }
+    return s;
+  }
+
+  // 静态文案(data-i18n / data-i18n-aria)、标题、页脚与语言下拉,脚本一跑就填,载入提示也是本地语言
+  function applyStaticText() {
+    document.documentElement.lang = LANG;
+    var nodes = document.querySelectorAll("[data-i18n]");
+    for (var i = 0; i < nodes.length; i += 1) { nodes[i].textContent = t(nodes[i].getAttribute("data-i18n")); }
+    var arias = document.querySelectorAll("[data-i18n-aria]");
+    for (var j = 0; j < arias.length; j += 1) { arias[j].setAttribute("aria-label", t(arias[j].getAttribute("data-i18n-aria"))); }
+    var h1 = document.querySelector("h1");
+    if (h1 && !h1.textContent.trim()) {          // --title 没传:标题按语言显示
+      h1.textContent = t("defaultTitle");
+      document.title = t("defaultTitle");
+    }
+    var foot = document.getElementById("footerText");
+    if (foot) { foot.textContent = t("footer", { dir: foot.getAttribute("data-dir") }); }
+    var sel = document.getElementById("langSel");
+    if (sel) {
+      sel.setAttribute("aria-label", t("langLabel"));
+      LANGS.forEach(function (code) {
+        var opt = document.createElement("option");
+        opt.value = code;
+        opt.textContent = LANG_NAMES[code];
+        if (code === LANG) { opt.selected = true; }
+        sel.appendChild(opt);
+      });
+      sel.addEventListener("change", function () {
+        try { localStorage.setItem(LANG_KEY, sel.value); } catch (e) { /* 无痕模式 */ }
+        location.replace(location.pathname);   // 去掉 ?lang=,否则查询串又把它改回去
+      });
+    }
+  }
+
   var S = {
     checklist: { batches: [] },
     results: {},
@@ -316,7 +647,7 @@
     selected: [],
     filter: "all"
   };
-  var FILTERS = [["all", "全部"], ["fail", "未通过"], ["blocked", "未测"], ["pass", "通过"], ["none", "未勾选"]];
+  var FILTERS = [["all", "fAll"], ["fail", "fFail"], ["blocked", "fBlocked"], ["pass", "fPass"], ["none", "fNone"]];   // [状态, 文案键]
   var dom = {
     chips: document.getElementById("chips"),
     batchPicker: document.getElementById("batchPicker"),
@@ -340,11 +671,8 @@
       empty: document.getElementById("bugEmpty"),
       hint: document.getElementById("bugHint"),
       add: document.getElementById("addBug"),
-      titlePlaceholder: "一句话标题",
-      notePlaceholder: "详细描述：怎么复现？本该是什么样？",
-      confirmText: "删掉这条 Bug？附件也会一起删。",
-      hintPrefix: "新 Bug 记入：",
-      hintNone: "先在上面选一个批次，新 Bug 才知道该记到哪一批。"
+      titlePh: "entryTitlePh", notePh: "bugNotePh", confirm: "bugConfirm",   // 文案键,现取 t()
+      hintKey: "bugHint", hintNoneKey: "bugHintNone"
     },
     req: {
       api: "/api/requirement", delApi: "/api/requirement/delete",
@@ -352,11 +680,8 @@
       empty: document.getElementById("reqEmpty"),
       hint: document.getElementById("reqHint"),
       add: document.getElementById("addReq"),
-      titlePlaceholder: "一句话标题",
-      notePlaceholder: "详细描述：想要什么？期待是什么样？",
-      confirmText: "删掉这条需求？附件也会一起删。",
-      hintPrefix: "新需求记入：",
-      hintNone: "先在上面选一个批次，新需求才知道该记到哪一批。"
+      titlePh: "entryTitlePh", notePh: "reqNotePh", confirm: "reqConfirm",
+      hintKey: "reqHint", hintNoneKey: "reqHintNone"
     }
   };
 
@@ -372,9 +697,9 @@
   function paintDot() {
     var cls = "dot";
     var text = "";
-    if (inflight > 0) { cls += " saving"; text = "保存中"; }
-    else if (failedCount() > 0) { cls += " error"; text = "保存失败，点这里重试"; }
-    else if (everSaved) { cls += " saved"; text = "已存"; }
+    if (inflight > 0) { cls += " saving"; text = t("saving"); }
+    else if (failedCount() > 0) { cls += " error"; text = t("saveFailed"); }
+    else if (everSaved) { cls += " saved"; text = t("saved"); }
     dom.dot.className = cls;
     dom.dotText.textContent = text;
   }
@@ -498,11 +823,12 @@
         });
       });
     });
-    dom.progress.innerHTML = "已测 <b>" + tested + "</b> / <b>" + total +
-      "</b> · 未通过 <b class=\"n-fail\">" + bad +
-      "</b> · 未测 <b>" + blocked +
-      "</b> · 新 Bug <b>" + visibleEntryCount("bug") +
-      "</b> · 新需求 <b>" + visibleEntryCount("req") + "</b>";
+    // 模板来自本页字典、插值全是数字,innerHTML 安全
+    dom.progress.innerHTML = t("progress", {
+      tested: "<b>" + tested + "</b>", total: "<b>" + total + "</b>",
+      fail: "<b class=\"n-fail\">" + bad + "</b>", blocked: "<b>" + blocked + "</b>",
+      bugs: "<b>" + visibleEntryCount("bug") + "</b>", reqs: "<b>" + visibleEntryCount("req") + "</b>"
+    });
   }
 
   // ── 附件灯箱(页内查看,不离开页面)────────────────────────────────────
@@ -518,7 +844,7 @@
     } else {
       node = document.createElement("img");
       node.src = url;
-      node.alt = "附件";
+      node.alt = t("attachment");
       node.addEventListener("click", closeViewer);   // 点图本身也能关
     }
     closeViewer();
@@ -554,7 +880,7 @@
       } else {
         var img = document.createElement("img");
         img.src = url;
-        img.alt = "附件";
+        img.alt = t("attachment");
         img.loading = "lazy";
         cell.appendChild(img);
       }
@@ -563,7 +889,7 @@
       del.type = "button";
       del.className = "thumb-del";
       del.textContent = "✕";
-      del.setAttribute("aria-label", "删除这个附件");
+      del.setAttribute("aria-label", t("removeFile"));
       del.addEventListener("click", function (ev) {
         ev.stopPropagation();
         dropFile(box, kind, id, path);
@@ -620,7 +946,7 @@
   function makePicker(box, kind, id) {
     var label = document.createElement("label");
     label.className = "pick";
-    label.appendChild(document.createTextNode("添加截图/录屏"));
+    label.appendChild(document.createTextNode(t("addFiles")));
     var input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*,video/*";
@@ -656,15 +982,15 @@
     var passBtn = document.createElement("button");
     passBtn.type = "button";
     passBtn.className = "btn pass";
-    passBtn.textContent = "通过";
+    passBtn.textContent = t("pass");
     var failBtn = document.createElement("button");
     failBtn.type = "button";
     failBtn.className = "btn fail";
-    failBtn.textContent = "未通过";
+    failBtn.textContent = t("fail");
     var blockedBtn = document.createElement("button");
     blockedBtn.type = "button";
     blockedBtn.className = "btn blocked";
-    blockedBtn.textContent = "未测试";
+    blockedBtn.textContent = t("blocked");
     btns.appendChild(passBtn);
     btns.appendChild(failBtn);
     btns.appendChild(blockedBtn);
@@ -675,14 +1001,14 @@
     var noteToggle = document.createElement("button");
     noteToggle.type = "button";
     noteToggle.className = "note-toggle";
-    noteToggle.textContent = "＋ 补充优化建议（选填）";
+    noteToggle.textContent = t("noteToggle");
     noteToggle.addEventListener("click", function () { passExpanded = true; paint(); });
     card.appendChild(noteToggle);
 
     var panel = document.createElement("div");
     panel.className = "panel";
     var note = document.createElement("textarea");
-    note.placeholder = "哪里不对？怎么复现？";
+    note.placeholder = t("phFail");
     note.value = rec.note || "";
     panel.appendChild(note);
     var thumbs = document.createElement("div");
@@ -708,10 +1034,10 @@
       panel.hidden = !showPanel;
       noteToggle.hidden = !(rec.status === "pass" && !showPanel);
       note.placeholder = rec.status === "blocked"
-        ? "为什么先没测？之后怎么补测？（选填）"
+        ? t("phBlocked")
         : rec.status === "pass"
-        ? "通过。有想顺手提的优化改进吗？（选填）"
-        : "哪里不对？怎么复现？";
+        ? t("phPass")
+        : t("phFail");
     }
 
     function choose(next) {
@@ -753,17 +1079,17 @@
     var del = document.createElement("button");
     del.type = "button";
     del.className = "entry-del";
-    del.textContent = "删除";
+    del.textContent = t("delete");
     card.appendChild(del);
 
     var title = document.createElement("input");
     title.type = "text";
-    title.placeholder = cfg.titlePlaceholder;
+    title.placeholder = t(cfg.titlePh);
     title.value = entry.title || "";
     card.appendChild(title);
 
     var note = document.createElement("textarea");
-    note.placeholder = cfg.notePlaceholder;
+    note.placeholder = t(cfg.notePh);
     note.value = entry.note || "";
     card.appendChild(note);
 
@@ -785,7 +1111,7 @@
     note.addEventListener("input", onEdit);
 
     del.addEventListener("click", function () {
-      if (!window.confirm(cfg.confirmText)) { return; }
+      if (!window.confirm(t(cfg.confirm))) { return; }
       cancelSave(kind + ":" + entry.id);
       S.entries[kind] = S.entries[kind].filter(function (e) { return e.id !== entry.id; });
       card.parentNode.removeChild(card);
@@ -812,8 +1138,8 @@
     cfg.empty.hidden = visible > 0;
     var batch = targetBatch();
     cfg.hint.textContent = batch
-      ? cfg.hintPrefix + batch.title + (batch.date ? "（" + batch.date + "）" : "")
-      : cfg.hintNone;
+      ? t(cfg.hintKey, { batch: batch.title + (batch.date ? t("dateParen", { date: batch.date }) : "") })
+      : t(cfg.hintNoneKey);
     cfg.add.disabled = !batch;
   }
 
@@ -895,9 +1221,9 @@
     var actions = document.createElement("div");
     actions.className = "bp-actions";
     [
-      { label: "只看最新", ids: function () { var b = S.checklist.batches[0]; return b ? [b.id] : []; } },
-      { label: "全选", ids: function () { return S.checklist.batches.map(function (b) { return b.id; }); } },
-      { label: "清空", ids: function () { return []; } }
+      { label: t("latestOnly"), ids: function () { var b = S.checklist.batches[0]; return b ? [b.id] : []; } },
+      { label: t("selectAll"), ids: function () { return S.checklist.batches.map(function (b) { return b.id; }); } },
+      { label: t("clear"), ids: function () { return []; } }
     ].forEach(function (a) {
       var btn = document.createElement("button");
       btn.type = "button";
@@ -955,7 +1281,7 @@
     bp.shown = end;
     var left = all.length - bp.shown;
     bp.more.hidden = left <= 0;
-    bp.more.textContent = left > 0 ? "↓ 往下滑看更早的 " + left + " 批" : "";
+    bp.more.textContent = left > 0 ? t("more", { n: left }) : "";
   }
 
   // 首屏不够撑满面板就继续追加到能滚为止,否则更早的批次永远够不到
@@ -1109,13 +1435,13 @@
     dom.filters.textContent = "";
     var lab = document.createElement("span");
     lab.className = "flabel";
-    lab.textContent = "只看";
+    lab.textContent = t("filterLabel");
     dom.filters.appendChild(lab);
     FILTERS.forEach(function (f) {
       var chip = document.createElement("button");
       chip.type = "button";
       chip.className = "chip" + (S.filter === f[0] ? " on" : "");
-      chip.textContent = f[1];
+      chip.textContent = t(f[1]);
       chip.addEventListener("click", function () {
         S.filter = f[0];
         renderFilters();
@@ -1170,11 +1496,12 @@
       initChipDesktopScroll();
       scrollSelectedChipIntoView();
     }).catch(function (err) {
-      dom.progress.textContent = "载入失败：" + err.message + "，下拉刷新重试。";
+      dom.progress.textContent = t("loadError", { msg: err.message });
       if (window.console) { console.error(err); }
     });
   }
 
+  applyStaticText();
   boot();
 }());
 </script>

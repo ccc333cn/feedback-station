@@ -1,6 +1,6 @@
 ---
 name: feedback-station
-description: 真机测试反馈闭环——在电脑上起一个局域网反馈站,测试者用手机逐条勾「通过 / 未通过 / 未测试」、附截图录屏、提新 Bug 与新需求,数据落本地磁盘,智能体直接读盘处理。每批交付测试版要发复验清单时、用户说"测完了 / 看反馈 / 起反馈站 / 接入反馈站"时调用。通用 Agent Skill,不绑定宿主:Claude Code、Codex、Cursor、Gemini CLI、OpenCode 等都能用。
+description: 真机测试反馈闭环——在电脑上起一个局域网反馈站,测试者用手机逐条勾「通过 / 未通过 / 未测试」、附截图录屏、提新 Bug 与新需求,数据落本地磁盘,智能体直接读盘处理。每批交付测试版要发复验清单时、用户说"测完了 / 看反馈 / 起反馈站 / 接入反馈站"时调用。通用 Agent Skill,不绑定宿主:Claude Code、Codex、Cursor、Gemini CLI、OpenCode 等都能用。Real-device test feedback loop: start a LAN feedback site on the computer; testers mark each checklist item pass / fail / not tested on their phones, attach screenshots and recordings, file new bugs and feature requests; everything lands on local disk for the agent to read. Use when delivering a test build with a verification checklist, or when the user says "done testing", "check the feedback", "start / set up the feedback station".
 license: MIT (see LICENSE)
 compatibility: 需要 Python 3(仅标准库)以及能执行 shell 命令、读写文件的宿主;查看截图 / 录屏需宿主能读图,否则以文字备注为准。
 ---
@@ -19,6 +19,9 @@ compatibility: 需要 Python 3(仅标准库)以及能执行 shell 命令、读�
 
 本文约定:「智能体」= 正在读本文的你,不限于哪家产品;`<skill>` = 本 SKILL.md 所在目录;
 `<root>` = 存放 `checklist.json` 与 `data/` 的目录。API 表、数据模型、记录生命周期语义见 `<skill>/docs/api.md`。
+
+**语言**:页面界面按测试者浏览器语言自动显示(简中 / 繁中 / 英 / 日 / 韩 / 西 / 法 / 德 / 葡 / 俄),页脚可切换,
+给用户的链接也可带 `?lang=en` 固定。清单条目文案、`--title`、与用户的对话一律用**用户的语言**;本文是中文,照做即可。
 
 ## 对宿主的要求(任何智能体都行)
 
@@ -44,7 +47,7 @@ compatibility: 需要 Python 3(仅标准库)以及能执行 shell 命令、读�
 python3 <skill>/server.py --root Tools/FeedbackStation --title "<项目名> · 真机反馈"
 ```
 
-3. 把终端打印的 `http://<内网 IP>:8787/` 给用户。手机首连失败,提醒用户看电脑上的防火墙弹窗
+3. 把终端打印的 `http://<内网 IP>:8787/` 给用户(`--title` 不传时标题按浏览器语言显示;传了就固定)。手机首连失败,提醒用户看电脑上的防火墙弹窗
    「允许 Python 接受传入连接」(智能体碰不了系统弹窗)。
 4. 把启动命令(含 `--root` / `--title`)记进项目的智能体说明文件——宿主认哪个就写哪个
    (`AGENTS.md` / `CLAUDE.md` / `GEMINI.md` / `.cursor/rules` 等)或项目内 skill,下次直接用。

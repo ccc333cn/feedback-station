@@ -32,7 +32,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8787
-DEFAULT_TITLE = "真机反馈"
+DEFAULT_TITLE = ""   # 空 = 页面按浏览器语言显示默认标题(真机反馈 / Device Test Feedback …)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_PATH = os.path.join(SCRIPT_DIR, "index.html")
@@ -830,7 +830,7 @@ def _parse_args(argv):
     parser.add_argument("--host", default=DEFAULT_HOST,
                         help="监听地址(默认 %s,局域网可达;只想本机用就填 127.0.0.1)" % DEFAULT_HOST)
     parser.add_argument("--title", default=DEFAULT_TITLE,
-                        help="页面标题,建议「<项目名> · 真机反馈」(默认「%s」)" % DEFAULT_TITLE)
+                        help="页面标题,建议「<项目名> · 真机反馈」;不传则页面按浏览器语言显示默认标题")
     return parser.parse_args(argv)
 
 
@@ -858,7 +858,9 @@ def main(argv=None):
     httpd.daemon_threads = True
     ip = lan_ip()
     print("")
-    print("  %s · 反馈站已启动" % PAGE_TITLE)
+    print("  %s反馈站已启动" % ((PAGE_TITLE + " · ") if PAGE_TITLE else ""))
+    if not PAGE_TITLE:
+        print("  页面标题按浏览器语言自动显示；想固定就传 --title。")
     if ip:
         print("  手机（同一 Wi-Fi）打开：  http://%s:%d/" % (ip, args.port))
     else:
