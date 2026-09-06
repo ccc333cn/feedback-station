@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="format-detection" content="telephone=no">
+<title>{{TITLE}}</title>
+<style>
+  :root {
+    --bg: #12100E;
+    --card: #1C1815;
+    --amber: #E8B463;
+    --paper: #F2EDE3;
+    --dim: #8A7F70;
+    --pass: #7FA86A;
+    --fail: #C24A33;
+    --line: rgba(242, 237, 227, 0.10);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--paper);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+          "Helvetica Neue", Arial, sans-serif;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 0 16px calc(56px + env(safe-area-inset-bottom));
+    -webkit-text-size-adjust: 100%;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: 0 -16px;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+    background: rgba(18, 16, 14, 0.94);
+    backdrop-filter: saturate(140%) blur(12px);
+    -webkit-backdrop-filter: saturate(140%) blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar { display: flex; align-items: center; gap: 10px; }
+  h1 { flex: 1; margin: 0; font-size: 17px; font-weight: 600; letter-spacing: 0.5px; }
+  .dot-wrap { display: flex; align-items: center; gap: 6px; }
+  .dot-text { font-size: 11px; color: var(--dim); }
+  .dot {
+    width: 20px; height: 20px; padding: 0; border: 0; background: none;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .dot::after {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--dim); transition: background 0.2s ease, transform 0.2s ease;
+  }
+  .dot.saving::after { background: var(--amber); animation: pulse 0.9s ease-in-out infinite; }
+  .dot.saved::after { background: var(--pass); }
+  .dot.error::after { background: var(--fail); transform: scale(1.25); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip {
+    flex: none; font: inherit; font-size: 13px; line-height: 1.2;
+    padding: 7px 12px; border-radius: 999px; cursor: pointer;
+    background: transparent; color: var(--dim);
+    border: 1px solid var(--line);
+    white-space: nowrap; text-align: left;
+  }
+  .chip.on { background: var(--amber); border-color: var(--amber); color: #241A0C; font-weight: 600; }
+  /* 批次行:左侧常驻「☰ 批次」筛选钮 + 右侧横向滚动芯片。
+     芯片仍不换行(批次再多也不挤压变形);
+     桌面端补了滚轮横滚与鼠标拖动(触屏行为不变)。 */
+  .batch-bar { display: flex; align-items: stretch; gap: 8px; margin-top: 10px; }
+  .batch-bar .batch-picker { align-self: stretch; display: flex; align-items: center; }
+  .batch-picker.open { background: var(--card); color: var(--paper); border-color: var(--amber); }
+  .chips.batches {
+    position: relative;
+    margin-top: 0; flex: 1; min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    margin-right: -16px;
+    padding: 2px 16px 2px 0;
+  }
+  .chips.batches::-webkit-scrollbar { display: none; }
+  .chips.batches.dragging { cursor: grabbing; scroll-behavior: auto; }
+  .chips.batches.dragging .chip { pointer-events: none; }
+
+  /* 批次面板:纵向列出全部批次,多选;桌面与手机同一形态 */
+  .batch-panel {
+    margin-top: 8px; padding: 10px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    max-height: 320px; overflow-y: auto;     /* 批次多了在面板内滚,不把页面撑长 */
+    -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  }
+  .batch-panel .bp-more {
+    display: block; width: 100%; margin-top: 4px; padding: 9px 6px;
+    font: inherit; font-size: 12px; text-align: center; cursor: pointer;
+    background: transparent; border: 0; color: var(--dim); opacity: 0.8;
+  }
+  .batch-panel .bp-more[hidden] { display: none; }
+  .batch-panel .bp-actions { display: flex; gap: 8px; margin-bottom: 8px; }
+  .batch-panel .bp-actions .chip { font-size: 12px; padding: 6px 10px; }
+  .batch-panel .bp-row {
+    display: flex; align-items: baseline; gap: 10px; width: 100%;
+    font: inherit; font-size: 14px; text-align: left; cursor: pointer;
+    background: transparent; border: 0; color: var(--dim);
+    padding: 9px 6px; border-radius: 10px;
+  }
+  .batch-panel .bp-row:hover { background: rgba(255, 255, 255, 0.04); }
+  .batch-panel .bp-row .bp-check { width: 1.2em; flex: none; color: var(--amber); font-weight: 700; }
+  .batch-panel .bp-row.on { color: var(--paper); }
+  .batch-panel .bp-row .bp-date {
+    margin-left: auto; flex: none;
+    font-size: 12px; opacity: 0.72; font-variant-numeric: tabular-nums;
+  }
+  .chip-date {
+    display: block; margin-top: 3px;
+    font-size: 11px; font-weight: 400; opacity: 0.72;
+    font-variant-numeric: tabular-nums;
+  }
+  .filters { margin-top: 8px; align-items: center; }
+  .filters .flabel { font-size: 12px; color: var(--dim); }
+  .filters .chip { font-size: 12px; padding: 6px 10px; }
+  .progress { margin: 10px 0 0; font-size: 13px; color: var(--dim); }
+  .progress b { color: var(--paper); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .progress .n-fail { color: var(--fail); }
+
+  h2.sec {
+    margin: 26px 0 10px;
+    font-size: 13px; font-weight: 600; letter-spacing: 1px;
+    color: var(--amber);
+  }
+  .batch-title {
+    margin: 22px 0 0; font-size: 12px; letter-spacing: 1px; color: var(--dim);
+  }
+
+  .item, .entry {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border: 1px solid transparent;
+  }
+  .item.is-pass { border-color: rgba(127, 168, 106, 0.55); }
+  .item.is-fail { border-color: rgba(194, 74, 51, 0.55); }
+  .item.is-blocked { border-color: rgba(138, 127, 112, 0.55); }
+  .item-head { display: flex; gap: 10px; align-items: flex-start; }
+  .num {
+    flex: none; min-width: 40px; padding: 3px 7px; border-radius: 7px;
+    background: rgba(232, 180, 99, 0.14); color: var(--amber);
+    font-size: 12px; font-weight: 600; text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .txt { margin: 0; font-size: 14.5px; }
+
+  .btns { display: flex; gap: 8px; margin-top: 12px; }
+  .btn {
+    flex: 1; font: inherit; font-size: 14px; padding: 10px 0; cursor: pointer;
+    border-radius: 11px; border: 1px solid var(--line);
+    background: transparent; color: var(--dim);
+  }
+  .btn.pass.on { border-color: var(--pass); color: var(--pass); font-weight: 600; }
+  .btn.fail.on { border-color: var(--fail); background: var(--fail); color: #F7EFE9; font-weight: 600; }
+  .btn.blocked.on {
+    border-color: rgba(138, 127, 112, 0.9); background: rgba(138, 127, 112, 0.24);
+    color: var(--paper); font-weight: 600;
+  }
+
+  .panel { margin-top: 12px; }
+  .panel[hidden] { display: none; }
+  .note-toggle {
+    margin-top: 10px; padding: 0; border: none; background: none;
+    font: inherit; font-size: 13px; color: var(--amber); cursor: pointer; opacity: 0.85;
+  }
+  .note-toggle[hidden] { display: none; }
+  textarea, input[type=text] {
+    /* 16px 是 iOS Safari 不触发「聚焦自动放大」的下限,别再调小 */
+    width: 100%; font: inherit; font-size: 16px; color: var(--paper);
+    background: rgba(242, 237, 227, 0.05);
+    border: 1px solid var(--line); border-radius: 11px;
+    padding: 10px; resize: vertical;
+  }
+  textarea { min-height: 76px; }
+  textarea::placeholder, input::placeholder { color: var(--dim); }
+  textarea:focus, input:focus { outline: none; border-color: var(--amber); }
+
+  .pick {
+    display: inline-block; margin-top: 10px; cursor: pointer;
+    font-size: 13px; color: var(--amber);
+    padding: 8px 12px; border-radius: 11px;
+    border: 1px dashed rgba(232, 180, 99, 0.45);
+  }
+  .pick input { display: none; }
+
+  .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .thumbs:empty { display: none; }
+  .thumb {
+    position: relative; width: 74px; height: 74px; border-radius: 10px;
+    overflow: hidden; background: #0E0B08; cursor: pointer;
+    border: 1px solid var(--line);
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .play {
+    width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    color: var(--amber); font-size: 22px;
+  }
+  .thumb-del {
+    position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+    border: 0; border-radius: 50%; cursor: pointer;
+    background: rgba(18, 16, 14, 0.78); color: var(--paper);
+    font-size: 11px; line-height: 20px; padding: 0; text-align: center;
+  }
+
+  #bugzone, #reqzone { margin-top: 30px; padding-top: 4px; }
+  .entry { position: relative; padding-top: 36px; }
+  .entry[hidden] { display: none; }
+  .entry-del {
+    position: absolute; top: 10px; right: 10px;
+    padding: 2px 6px; background: none; border: 0; cursor: pointer;
+    font: inherit; font-size: 12px; color: var(--fail);
+  }
+  .entry-batch {
+    position: absolute; top: 12px; left: 14px;
+    font-size: 11px; letter-spacing: 0.5px; color: var(--dim);
+  }
+  /* 只选了一个批次时归属是废话,选了多个才把归属标出来 */
+  body:not(.multi-batch) .entry-batch { display: none; }
+  .entry input[type=text] { margin-bottom: 8px; }
+  .add {
+    width: 100%; font: inherit; font-size: 14px; padding: 12px 0; cursor: pointer;
+    border-radius: 12px; border: 1px dashed rgba(232, 180, 99, 0.45);
+    background: transparent; color: var(--amber);
+  }
+  .add[disabled] { opacity: 0.4; cursor: default; }
+  .zone-hint { margin: -4px 0 10px; font-size: 12px; color: var(--dim); }
+  .empty { margin: 0 0 10px; font-size: 13px; color: var(--dim); }
+  .empty[hidden] { display: none; }
+  .viewer {
+    position: fixed; inset: 0; z-index: 99;
+    background: rgba(10, 8, 6, 0.96);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .viewer[hidden] { display: none; }
+  .viewer img, .viewer video {
+    max-width: 100%; max-height: 88vh; object-fit: contain; border-radius: 10px;
+  }
+  .viewer-close {
+    position: absolute; right: 14px; top: calc(14px + env(safe-area-inset-top, 0px));
+    width: 38px; height: 38px; border-radius: 19px; border: none;
+    background: rgba(242, 237, 227, 0.14); color: var(--paper);
+    font-size: 17px; line-height: 38px; padding: 0; text-align: center; cursor: pointer;
+  }
+  footer { margin-top: 28px; font-size: 12px; color: var(--dim); text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <h1>{{TITLE}}</h1>
+    <div class="dot-wrap">
+      <span class="dot-text" id="dotText"></span>
+      <button class="dot" id="dot" type="button" aria-label="保存状态"></button>
+    </div>
+  </div>
+  <div class="batch-bar">
+    <button class="chip batch-picker" id="batchPicker" type="button" aria-expanded="false">☰ 批次</button>
+    <div class="chips batches" id="chips"></div>
+  </div>
+  <div class="batch-panel" id="batchPanel" hidden></div>
+  <div class="chips filters" id="filters"></div>
+  <p class="progress" id="progress">正在载入……</p>
+</header>
+
+<main id="list"></main>
+<p class="empty" id="listEmpty" hidden>没有选中任何批次——点上面的芯片选一个。</p>
+
+<section id="bugzone">
+  <h2 class="sec">新 Bug</h2>
+  <p class="zone-hint" id="bugHint"></p>
+  <p class="empty" id="bugEmpty">测出清单以外的问题，在这里记一条。</p>
+  <div id="bugs"></div>
+  <button class="add" id="addBug" type="button">＋ 添加新 Bug</button>
+</section>
+
+<section id="reqzone">
+  <h2 class="sec">新需求</h2>
+  <p class="zone-hint" id="reqHint"></p>
+  <p class="empty" id="reqEmpty">不是 Bug、是想要的新功能或改进，在这里记一条。</p>
+  <div id="reqs"></div>
+  <button class="add" id="addReq" type="button">＋ 添加新需求</button>
+</section>
+
+<footer>数据存在电脑上的 {{DATA_DIR}}，关掉浏览器、换台设备都不丢。</footer>
+
+<div class="viewer" id="viewer" hidden>
+  <button class="viewer-close" id="viewerClose" type="button" aria-label="关闭">✕</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var BP_PAGE = 6;   // 批次面板打开先列最近几条,滚到底再追加这么多
+  var LEGACY_LS_KEY = "feedback-station.batches";   // 旧版存过的批次选择,现已不持久化,顺手清掉
+  var VIDEO_EXT = ["mov", "mp4", "m4v", "avi", "mkv", "webm", "3gp"];
+
+  var S = {
+    checklist: { batches: [] },
+    results: {},
+    entries: { bug: [], req: [] },   // 新 Bug / 新需求,两边结构一致,各记 batchId
+    selected: [],
+    filter: "all"
+  };
+  var FILTERS = [["all", "全部"], ["fail", "未通过"], ["blocked", "未测"], ["pass", "通过"], ["none", "未勾选"]];
+  var dom = {
+    chips: document.getElementById("chips"),
+    batchPicker: document.getElementById("batchPicker"),
+    batchPanel: document.getElementById("batchPanel"),
+    filters: document.getElementById("filters"),
+    progress: document.getElementById("progress"),
+    list: document.getElementById("list"),
+    listEmpty: document.getElementById("listEmpty"),
+    dot: document.getElementById("dot"),
+    dotText: document.getElementById("dotText"),
+    viewer: document.getElementById("viewer"),
+    viewerClose: document.getElementById("viewerClose")
+  };
+
+  // 新 Bug 与新需求只差文案与端点,其余共用一套渲染
+  var KINDS = ["bug", "req"];
+  var CFG = {
+    bug: {
+      api: "/api/bug", delApi: "/api/bug/delete",
+      box: document.getElementById("bugs"),
+      empty: document.getElementById("bugEmpty"),
+      hint: document.getElementById("bugHint"),
+      add: document.getElementById("addBug"),
+      titlePlaceholder: "一句话标题",
+      notePlaceholder: "详细描述：怎么复现？本该是什么样？",
+      confirmText: "删掉这条 Bug？附件也会一起删。",
+      hintPrefix: "新 Bug 记入：",
+      hintNone: "先在上面选一个批次，新 Bug 才知道该记到哪一批。"
+    },
+    req: {
+      api: "/api/requirement", delApi: "/api/requirement/delete",
+      box: document.getElementById("reqs"),
+      empty: document.getElementById("reqEmpty"),
+      hint: document.getElementById("reqHint"),
+      add: document.getElementById("addReq"),
+      titlePlaceholder: "一句话标题",
+      notePlaceholder: "详细描述：想要什么？期待是什么样？",
+      confirmText: "删掉这条需求？附件也会一起删。",
+      hintPrefix: "新需求记入：",
+      hintNone: "先在上面选一个批次，新需求才知道该记到哪一批。"
+    }
+  };
+
+  // ── 保存队列:防抖 + 状态点 + 失败重试 ────────────────────────────────
+  var timers = {};
+  var failed = {};
+  var inflight = 0;
+  var retryTimer = null;
+  var everSaved = false;
+
+  function failedCount() { return Object.keys(failed).length; }
+
+  function paintDot() {
+    var cls = "dot";
+    var text = "";
+    if (inflight > 0) { cls += " saving"; text = "保存中"; }
+    else if (failedCount() > 0) { cls += " error"; text = "保存失败，点这里重试"; }
+    else if (everSaved) { cls += " saved"; text = "已存"; }
+    dom.dot.className = cls;
+    dom.dotText.textContent = text;
+  }
+
+  function runSave(key, job) {
+    if (timers[key]) { clearTimeout(timers[key]); delete timers[key]; }
+    inflight += 1;
+    paintDot();
+    return job().then(function () {
+      delete failed[key];
+      everSaved = true;
+    }, function (err) {
+      failed[key] = job;
+      scheduleRetry();
+      if (window.console) { console.warn("保存失败", key, err); }
+    }).then(function () {
+      inflight -= 1;
+      paintDot();
+    });
+  }
+
+  function debounceSave(key, job) {
+    if (timers[key]) { clearTimeout(timers[key]); }
+    timers[key] = setTimeout(function () { runSave(key, job); }, 500);
+  }
+
+  function cancelSave(key) {
+    if (timers[key]) { clearTimeout(timers[key]); delete timers[key]; }
+    delete failed[key];
+  }
+
+  function scheduleRetry() {
+    if (retryTimer) { return; }
+    retryTimer = setTimeout(function () { retryTimer = null; retryAll(); }, 3000);
+  }
+
+  function retryAll() {
+    var keys = Object.keys(failed);
+    for (var i = 0; i < keys.length; i += 1) {
+      var key = keys[i];
+      var job = failed[key];
+      delete failed[key];
+      runSave(key, job);
+    }
+    paintDot();
+  }
+
+  dom.dot.addEventListener("click", retryAll);
+
+  function postJSON(url, body) {
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      if (!res.ok) { throw new Error("HTTP " + res.status); }
+      return res.json();
+    });
+  }
+
+  // ── 数据小工具 ──────────────────────────────────────────────────────────
+  function itemRecord(itemId) {
+    var rec = S.results[itemId];
+    if (!rec || typeof rec !== "object") {
+      rec = { status: null, note: "", files: [] };
+      S.results[itemId] = rec;
+    }
+    if (!rec.files) { rec.files = []; }
+    if (typeof rec.note !== "string") { rec.note = ""; }
+    return rec;
+  }
+
+  function entryRecord(kind, entryId) {
+    var list = S.entries[kind];
+    for (var i = 0; i < list.length; i += 1) {
+      if (list[i].id === entryId) { return list[i]; }
+    }
+    return null;
+  }
+
+  function isVideo(path) {
+    var ext = String(path).split(".").pop().toLowerCase();
+    return VIDEO_EXT.indexOf(ext) >= 0;
+  }
+
+  function selectedBatches() {
+    return S.checklist.batches.filter(function (b) { return S.selected.indexOf(b.id) >= 0; });
+  }
+
+  // 新记录归属:当前选中的最新批次(清单是新批置顶,所以取第一个选中的)
+  function targetBatch() {
+    var picked = selectedBatches();
+    return picked.length ? picked[0] : null;
+  }
+
+  // 每次打开页面只选最新批次(清单新批置顶 ⇒ 第一个);多选是临时复查动作,不持久化,
+  // 这样新批次上线后刷新一定看得到,页面也不会一打开就铺开几十批。
+  function defaultSelection(allIds) {
+    try { localStorage.removeItem(LEGACY_LS_KEY); } catch (e) { /* 无痕模式 */ }
+    return allIds.length ? [allIds[0]] : [];
+  }
+
+  // ── 进度行 ──────────────────────────────────────────────────────────────
+  function visibleEntryCount(kind) {
+    return S.entries[kind].filter(function (e) {
+      return S.selected.indexOf(e.batchId) >= 0;
+    }).length;
+  }
+
+  function updateProgress() {
+    var total = 0, tested = 0, bad = 0, blocked = 0;
+    selectedBatches().forEach(function (batch) {
+      batch.sections.forEach(function (sec) {
+        sec.items.forEach(function (item) {
+          total += 1;
+          var rec = S.results[item.id];
+          // 「未测试」不算已测——它是留待补测的
+          if (rec && (rec.status === "pass" || rec.status === "fail")) { tested += 1; }
+          if (rec && rec.status === "fail") { bad += 1; }
+          if (rec && rec.status === "blocked") { blocked += 1; }
+        });
+      });
+    });
+    dom.progress.innerHTML = "已测 <b>" + tested + "</b> / <b>" + total +
+      "</b> · 未通过 <b class=\"n-fail\">" + bad +
+      "</b> · 未测 <b>" + blocked +
+      "</b> · 新 Bug <b>" + visibleEntryCount("bug") +
+      "</b> · 新需求 <b>" + visibleEntryCount("req") + "</b>";
+  }
+
+  // ── 附件灯箱(页内查看,不离开页面)────────────────────────────────────
+  function openViewer(path) {
+    var url = "/" + path;
+    var node;
+    if (isVideo(path)) {
+      node = document.createElement("video");
+      node.src = url;
+      node.controls = true;
+      node.autoplay = true;
+      node.setAttribute("playsinline", "");
+    } else {
+      node = document.createElement("img");
+      node.src = url;
+      node.alt = "附件";
+      node.addEventListener("click", closeViewer);   // 点图本身也能关
+    }
+    closeViewer();
+    dom.viewer.appendChild(node);
+    dom.viewer.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeViewer() {
+    var media = dom.viewer.querySelector("img, video");
+    if (media) { media.remove(); }   // 移除即停播、释放
+    dom.viewer.hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  dom.viewerClose.addEventListener("click", closeViewer);
+  dom.viewer.addEventListener("click", function (ev) {
+    if (ev.target === dom.viewer) { closeViewer(); }   // 点空白背景关闭;视频区留给控制条
+  });
+
+  // ── 附件 ────────────────────────────────────────────────────────────────
+  function renderThumbs(box, kind, id, files) {
+    box.textContent = "";
+    (files || []).forEach(function (path) {
+      var url = "/" + path;
+      var cell = document.createElement("div");
+      cell.className = "thumb";
+      if (isVideo(path)) {
+        var mark = document.createElement("div");
+        mark.className = "play";
+        mark.textContent = "▶";
+        cell.appendChild(mark);
+      } else {
+        var img = document.createElement("img");
+        img.src = url;
+        img.alt = "附件";
+        img.loading = "lazy";
+        cell.appendChild(img);
+      }
+      cell.addEventListener("click", function () { openViewer(path); });
+      var del = document.createElement("button");
+      del.type = "button";
+      del.className = "thumb-del";
+      del.textContent = "✕";
+      del.setAttribute("aria-label", "删除这个附件");
+      del.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        dropFile(box, kind, id, path);
+      });
+      cell.appendChild(del);
+      box.appendChild(cell);
+    });
+  }
+
+  function filesOf(kind, id) {
+    if (kind === "item") { return itemRecord(id).files; }
+    var entry = entryRecord(kind, id);
+    return entry ? (entry.files || (entry.files = [])) : [];
+  }
+
+  function setFiles(kind, id, files) {
+    if (kind === "item") { itemRecord(id).files = files; return; }
+    var entry = entryRecord(kind, id);
+    if (entry) { entry.files = files; }
+  }
+
+  function dropFile(box, kind, id, path) {
+    var left = filesOf(kind, id).filter(function (p) { return p !== path; });
+    setFiles(kind, id, left);
+    renderThumbs(box, kind, id, left);
+    runSave("del:" + kind + ":" + id + ":" + path, function () {
+      return postJSON("/api/upload/delete", { kind: kind, id: id, path: path });
+    });
+  }
+
+  function uploadFiles(box, kind, id, fileList) {
+    var queue = Array.prototype.slice.call(fileList || []);
+    (function next() {
+      if (!queue.length) { return; }
+      var file = queue.shift();
+      var key = "up:" + kind + ":" + id + ":" + file.name + ":" + Date.now();
+      runSave(key, function () {
+        var form = new FormData();
+        form.append("file", file, file.name);
+        return fetch("/api/upload?kind=" + kind + "&id=" + encodeURIComponent(id), {
+          method: "POST",
+          body: form
+        }).then(function (res) {
+          if (!res.ok) { throw new Error("HTTP " + res.status); }
+          return res.json();
+        }).then(function (data) {
+          setFiles(kind, id, data.files || filesOf(kind, id).concat([data.path]));
+          renderThumbs(box, kind, id, filesOf(kind, id));
+        });
+      }).then(next);
+    }());
+  }
+
+  function makePicker(box, kind, id) {
+    var label = document.createElement("label");
+    label.className = "pick";
+    label.appendChild(document.createTextNode("添加截图/录屏"));
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*,video/*";
+    input.multiple = true;
+    input.addEventListener("change", function () {
+      uploadFiles(box, kind, id, input.files);
+      input.value = "";
+    });
+    label.appendChild(input);
+    return label;
+  }
+
+  // ── 条目卡 ──────────────────────────────────────────────────────────────
+  function buildItem(item) {
+    var rec = itemRecord(item.id);
+    var card = document.createElement("article");
+    card.className = "item";
+
+    var head = document.createElement("div");
+    head.className = "item-head";
+    var num = document.createElement("span");
+    num.className = "num";
+    num.textContent = item.label;
+    var txt = document.createElement("p");
+    txt.className = "txt";
+    txt.textContent = item.text;
+    head.appendChild(num);
+    head.appendChild(txt);
+    card.appendChild(head);
+
+    var btns = document.createElement("div");
+    btns.className = "btns";
+    var passBtn = document.createElement("button");
+    passBtn.type = "button";
+    passBtn.className = "btn pass";
+    passBtn.textContent = "通过";
+    var failBtn = document.createElement("button");
+    failBtn.type = "button";
+    failBtn.className = "btn fail";
+    failBtn.textContent = "未通过";
+    var blockedBtn = document.createElement("button");
+    blockedBtn.type = "button";
+    blockedBtn.className = "btn blocked";
+    blockedBtn.textContent = "未测试";
+    btns.appendChild(passBtn);
+    btns.appendChild(failBtn);
+    btns.appendChild(blockedBtn);
+    card.appendChild(btns);
+
+    // 「通过」默认折叠备注,小入口按需展开(只有小部分通过项需要选填)
+    var passExpanded = false;
+    var noteToggle = document.createElement("button");
+    noteToggle.type = "button";
+    noteToggle.className = "note-toggle";
+    noteToggle.textContent = "＋ 补充优化建议（选填）";
+    noteToggle.addEventListener("click", function () { passExpanded = true; paint(); });
+    card.appendChild(noteToggle);
+
+    var panel = document.createElement("div");
+    panel.className = "panel";
+    var note = document.createElement("textarea");
+    note.placeholder = "哪里不对？怎么复现？";
+    note.value = rec.note || "";
+    panel.appendChild(note);
+    var thumbs = document.createElement("div");
+    thumbs.className = "thumbs";
+    panel.appendChild(makePicker(thumbs, "item", item.id));
+    panel.appendChild(thumbs);
+    card.appendChild(panel);
+
+    renderThumbs(thumbs, "item", item.id, rec.files);
+
+    function paint() {
+      card.className = "item" + (rec.status === "pass" ? " is-pass"
+        : rec.status === "fail" ? " is-fail"
+        : rec.status === "blocked" ? " is-blocked" : "");
+      card.dataset.status = rec.status || "none";   // 筛选据此判;改态不当场隐藏,切筛选时才生效
+      passBtn.className = "btn pass" + (rec.status === "pass" ? " on" : "");
+      failBtn.className = "btn fail" + (rec.status === "fail" ? " on" : "");
+      blockedBtn.className = "btn blocked" + (rec.status === "blocked" ? " on" : "");
+      // 未通过/未测试恒展开;「通过」默认折叠,已有内容或点过入口才展开。收起不清空,误点切回不丢
+      var hasContent = !!(rec.note && rec.note.length) || !!(rec.files && rec.files.length);
+      var showPanel = rec.status === "fail" || rec.status === "blocked" ||
+        (rec.status === "pass" && (hasContent || passExpanded));
+      panel.hidden = !showPanel;
+      noteToggle.hidden = !(rec.status === "pass" && !showPanel);
+      note.placeholder = rec.status === "blocked"
+        ? "为什么先没测？之后怎么补测？（选填）"
+        : rec.status === "pass"
+        ? "通过。有想顺手提的优化改进吗？（选填）"
+        : "哪里不对？怎么复现？";
+    }
+
+    function choose(next) {
+      rec.status = (rec.status === next) ? null : next;
+      paint();
+      updateProgress();
+      runSave("item:" + item.id, function () {
+        return postJSON("/api/result", { itemId: item.id, status: rec.status, note: note.value });
+      });
+    }
+
+    passBtn.addEventListener("click", function () { choose("pass"); });
+    failBtn.addEventListener("click", function () { choose("fail"); });
+    blockedBtn.addEventListener("click", function () { choose("blocked"); });
+    note.addEventListener("input", function () {
+      rec.note = note.value;
+      debounceSave("item:" + item.id, function () {
+        return postJSON("/api/result", { itemId: item.id, status: rec.status, note: note.value });
+      });
+    });
+
+    paint();
+    return card;
+  }
+
+  // ── 新 Bug / 新需求卡(同一套,kind 区分)──────────────────────────────
+  function buildEntry(kind, entry) {
+    var cfg = CFG[kind];
+    var card = document.createElement("article");
+    card.className = "entry";
+    card.dataset.id = entry.id;
+    card.dataset.batch = entry.batchId || "";
+
+    var tag = document.createElement("span");
+    tag.className = "entry-batch";
+    tag.textContent = entry.batchId || "";
+    card.appendChild(tag);
+
+    var del = document.createElement("button");
+    del.type = "button";
+    del.className = "entry-del";
+    del.textContent = "删除";
+    card.appendChild(del);
+
+    var title = document.createElement("input");
+    title.type = "text";
+    title.placeholder = cfg.titlePlaceholder;
+    title.value = entry.title || "";
+    card.appendChild(title);
+
+    var note = document.createElement("textarea");
+    note.placeholder = cfg.notePlaceholder;
+    note.value = entry.note || "";
+    card.appendChild(note);
+
+    var thumbs = document.createElement("div");
+    thumbs.className = "thumbs";
+    card.appendChild(makePicker(thumbs, kind, entry.id));
+    card.appendChild(thumbs);
+    renderThumbs(thumbs, kind, entry.id, entry.files);
+
+    function push() {
+      return postJSON(cfg.api, { id: entry.id, title: title.value, note: note.value });
+    }
+    function onEdit() {
+      entry.title = title.value;
+      entry.note = note.value;
+      debounceSave(kind + ":" + entry.id, push);
+    }
+    title.addEventListener("input", onEdit);
+    note.addEventListener("input", onEdit);
+
+    del.addEventListener("click", function () {
+      if (!window.confirm(cfg.confirmText)) { return; }
+      cancelSave(kind + ":" + entry.id);
+      S.entries[kind] = S.entries[kind].filter(function (e) { return e.id !== entry.id; });
+      card.parentNode.removeChild(card);
+      applyEntryVisibility(kind);
+      updateProgress();
+      runSave(kind + "del:" + entry.id, function () {
+        return postJSON(cfg.delApi, { id: entry.id });
+      });
+    });
+
+    return card;
+  }
+
+  // 归属过滤:一条新 Bug / 新需求只在它自己那一批的视图里出现
+  function applyEntryVisibility(kind) {
+    var cfg = CFG[kind];
+    var nodes = cfg.box.querySelectorAll(".entry");
+    var visible = 0;
+    for (var i = 0; i < nodes.length; i += 1) {
+      var show = S.selected.indexOf(nodes[i].dataset.batch) >= 0;
+      nodes[i].hidden = !show;
+      if (show) { visible += 1; }
+    }
+    cfg.empty.hidden = visible > 0;
+    var batch = targetBatch();
+    cfg.hint.textContent = batch
+      ? cfg.hintPrefix + batch.title + (batch.date ? "（" + batch.date + "）" : "")
+      : cfg.hintNone;
+    cfg.add.disabled = !batch;
+  }
+
+  function renderEntries(kind) {
+    var cfg = CFG[kind];
+    cfg.box.textContent = "";
+    S.entries[kind].forEach(function (entry) { cfg.box.appendChild(buildEntry(kind, entry)); });
+    applyEntryVisibility(kind);
+  }
+
+  KINDS.forEach(function (kind) {
+    var cfg = CFG[kind];
+    cfg.add.addEventListener("click", function () {
+      var batch = targetBatch();
+      if (!batch) { return; }
+      runSave(kind + "new:" + Date.now(), function () {
+        return postJSON(cfg.api, { title: "", note: "", batchId: batch.id }).then(function (data) {
+          var entry = data.entry || data.bug;
+          S.entries[kind].push(entry);
+          cfg.box.appendChild(buildEntry(kind, entry));
+          applyEntryVisibility(kind);
+          updateProgress();
+        });
+      });
+    });
+  });
+
+  // ── 渲染 ────────────────────────────────────────────────────────────────
+  function ensureChipVisible(chip) {
+    var box = dom.chips;
+    var pad = 16;
+    var left = chip.offsetLeft;
+    var right = left + chip.offsetWidth;
+    if (left - pad < box.scrollLeft) {
+      box.scrollLeft = Math.max(left - pad, 0);
+    } else if (right + pad > box.scrollLeft + box.clientWidth) {
+      box.scrollLeft = right + pad - box.clientWidth;
+    }
+  }
+
+  function scrollSelectedChipIntoView() {
+    var on = dom.chips.querySelector(".chip.on");
+    if (on) { ensureChipVisible(on); }
+  }
+
+  // 批次选择的唯一写点:芯片与面板共用(改完刷新全部可见性)。
+  function toggleBatch(batchId) {
+    var at = S.selected.indexOf(batchId);
+    if (at >= 0) {
+      S.selected.splice(at, 1);   // 允许全不选,列表区给空态提示
+    } else {
+      S.selected.push(batchId);
+    }
+    afterSelectionChanged();
+  }
+
+  function setSelection(ids) {
+    S.selected = ids.slice();
+    afterSelectionChanged();
+    renderChips();
+    scrollSelectedChipIntoView();
+  }
+
+  function afterSelectionChanged() {
+    applyBatchVisibility();
+    applyFilter();
+    KINDS.forEach(applyEntryVisibility);
+    updateProgress();
+    paintBatchPanel();
+  }
+
+  // ── 批次面板:纵向多选,桌面/手机同形态(「☰ 批次」钮开合)──
+  // 只在打开时重建:先列最近 BP_PAGE 条,滚到底(或点底部提示)再追加更早的;面板限高,不把页面撑长。
+  // 改选中只原地同步勾号(paintBatchPanel),不重建、不丢滚动位置。
+  var bp = { rows: null, more: null, shown: 0 };
+
+  function renderBatchPanel() {
+    dom.batchPanel.textContent = "";
+    var actions = document.createElement("div");
+    actions.className = "bp-actions";
+    [
+      { label: "只看最新", ids: function () { var b = S.checklist.batches[0]; return b ? [b.id] : []; } },
+      { label: "全选", ids: function () { return S.checklist.batches.map(function (b) { return b.id; }); } },
+      { label: "清空", ids: function () { return []; } }
+    ].forEach(function (a) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "chip";
+      btn.textContent = a.label;
+      btn.addEventListener("click", function () { setSelection(a.ids()); });
+      actions.appendChild(btn);
+    });
+    dom.batchPanel.appendChild(actions);
+    bp.rows = document.createElement("div");
+    bp.rows.className = "bp-rows";
+    dom.batchPanel.appendChild(bp.rows);
+    bp.more = document.createElement("button");
+    bp.more.type = "button";
+    bp.more.className = "bp-more";
+    bp.more.addEventListener("click", appendBatchRows);
+    dom.batchPanel.appendChild(bp.more);
+    bp.shown = 0;
+    dom.batchPanel.scrollTop = 0;
+    appendBatchRows();
+    fillBatchPanel();
+  }
+
+  function buildBatchRow(batch) {
+    var on = S.selected.indexOf(batch.id) >= 0;
+    var row = document.createElement("button");
+    row.type = "button";
+    row.className = "bp-row" + (on ? " on" : "");
+    row.dataset.batch = batch.id;
+    var check = document.createElement("span");
+    check.className = "bp-check";
+    check.textContent = on ? "✓" : "";
+    row.appendChild(check);
+    var name = document.createElement("span");
+    name.textContent = batch.title;
+    row.appendChild(name);
+    if (batch.date) {
+      var when = document.createElement("span");
+      when.className = "bp-date";
+      when.textContent = batch.date;
+      row.appendChild(when);
+    }
+    row.addEventListener("click", function () {
+      toggleBatch(batch.id);
+      renderChips();
+      scrollSelectedChipIntoView();
+    });
+    return row;
+  }
+
+  function appendBatchRows() {
+    var all = S.checklist.batches;
+    var end = Math.min(bp.shown + BP_PAGE, all.length);
+    for (var i = bp.shown; i < end; i += 1) { bp.rows.appendChild(buildBatchRow(all[i])); }
+    bp.shown = end;
+    var left = all.length - bp.shown;
+    bp.more.hidden = left <= 0;
+    bp.more.textContent = left > 0 ? "↓ 往下滑看更早的 " + left + " 批" : "";
+  }
+
+  // 首屏不够撑满面板就继续追加到能滚为止,否则更早的批次永远够不到
+  function fillBatchPanel() {
+    var box = dom.batchPanel;
+    var guard = 0;
+    while (bp.shown < S.checklist.batches.length && box.scrollHeight <= box.clientHeight && guard < 50) {
+      appendBatchRows();
+      guard += 1;
+    }
+  }
+
+  function paintBatchPanel() {
+    if (dom.batchPanel.hidden || !bp.rows) { return; }
+    var rows = bp.rows.querySelectorAll(".bp-row");
+    for (var i = 0; i < rows.length; i += 1) {
+      var on = S.selected.indexOf(rows[i].dataset.batch) >= 0;
+      rows[i].className = "bp-row" + (on ? " on" : "");
+      rows[i].firstChild.textContent = on ? "✓" : "";
+    }
+  }
+
+  function setBatchPanelOpen(open) {
+    dom.batchPanel.hidden = !open;
+    dom.batchPicker.className = "chip batch-picker" + (open ? " open" : "");
+    dom.batchPicker.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) { renderBatchPanel(); }
+  }
+
+  function initBatchPicker() {
+    dom.batchPicker.addEventListener("click", function (e) {
+      e.stopPropagation();
+      setBatchPanelOpen(dom.batchPanel.hidden);
+    });
+    // 点面板外任意处收起(面板内点击不冒泡到 document 关面板)
+    dom.batchPanel.addEventListener("click", function (e) { e.stopPropagation(); });
+    // 面板内滚到底 ⇒ 追加更早的批次
+    dom.batchPanel.addEventListener("scroll", function () {
+      var box = dom.batchPanel;
+      if (bp.shown >= S.checklist.batches.length) { return; }
+      if (box.scrollTop + box.clientHeight >= box.scrollHeight - 48) { appendBatchRows(); }
+    });
+    document.addEventListener("click", function () {
+      if (!dom.batchPanel.hidden) { setBatchPanelOpen(false); }
+    });
+  }
+
+  // ── 桌面端:滚轮竖转横 + 鼠标按住拖动(触屏路径不受影响)──
+  function initChipDesktopScroll() {
+    var box = dom.chips;
+    box.addEventListener("wheel", function (e) {
+      if (box.scrollWidth <= box.clientWidth) { return; }
+      var delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (!delta) { return; }
+      box.scrollLeft += delta;
+      e.preventDefault();
+    }, { passive: false });
+
+    var drag = null;
+    box.addEventListener("pointerdown", function (e) {
+      if (e.pointerType !== "mouse" || e.button !== 0) { return; }
+      drag = { x: e.clientX, left: box.scrollLeft, moved: false };
+    });
+    box.addEventListener("pointermove", function (e) {
+      if (!drag) { return; }
+      var dx = e.clientX - drag.x;
+      if (!drag.moved && Math.abs(dx) > 5) {
+        drag.moved = true;
+        box.classList.add("dragging");   // 拖动中芯片停收点击,松手才恢复
+      }
+      if (drag.moved) { box.scrollLeft = drag.left - dx; }
+    });
+    function endDrag() {
+      if (!drag) { return; }
+      var moved = drag.moved;
+      drag = null;
+      if (moved) {
+        // 让本次拖动收尾的 click 先被 .dragging 吞掉,再恢复可点
+        setTimeout(function () { box.classList.remove("dragging"); }, 0);
+      } else {
+        box.classList.remove("dragging");
+      }
+    }
+    box.addEventListener("pointerup", endDrag);
+    box.addEventListener("pointerleave", endDrag);
+    box.addEventListener("pointercancel", endDrag);
+  }
+
+  function renderChips() {
+    dom.chips.textContent = "";
+    S.checklist.batches.forEach(function (batch) {
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip" + (S.selected.indexOf(batch.id) >= 0 ? " on" : "");
+      chip.dataset.batch = batch.id;
+      var name = document.createElement("span");
+      name.className = "chip-name";
+      name.textContent = batch.title;
+      chip.appendChild(name);
+      if (batch.date) {           // 老批次没有 date 字段就不显示这一行,向后兼容
+        var when = document.createElement("span");
+        when.className = "chip-date";
+        when.textContent = batch.date;
+        chip.appendChild(when);
+      }
+      chip.addEventListener("click", function () {
+        toggleBatch(batch.id);
+        chip.className = "chip" + (S.selected.indexOf(batch.id) >= 0 ? " on" : "");
+        ensureChipVisible(chip);
+      });
+      dom.chips.appendChild(chip);
+    });
+  }
+
+  function applyBatchVisibility() {
+    var nodes = dom.list.querySelectorAll("section[data-batch]");
+    for (var i = 0; i < nodes.length; i += 1) {
+      nodes[i].hidden = S.selected.indexOf(nodes[i].dataset.batch) < 0;
+    }
+    dom.listEmpty.hidden = S.selected.length > 0;
+    document.body.classList.toggle("multi-batch", selectedBatches().length > 1);
+  }
+
+  function renderList() {
+    dom.list.textContent = "";
+    S.checklist.batches.forEach(function (batch) {
+      var wrap = document.createElement("section");
+      wrap.dataset.batch = batch.id;
+      var bt = document.createElement("p");
+      bt.className = "batch-title";
+      bt.textContent = batch.title + (batch.date ? " · " + batch.date : "");
+      wrap.appendChild(bt);
+      batch.sections.forEach(function (sec) {
+        var secwrap = document.createElement("div");
+        secwrap.className = "secwrap";
+        var head = document.createElement("h2");
+        head.className = "sec";
+        head.textContent = sec.title;
+        secwrap.appendChild(head);
+        sec.items.forEach(function (item) { secwrap.appendChild(buildItem(item)); });
+        wrap.appendChild(secwrap);
+      });
+      dom.list.appendChild(wrap);
+    });
+    applyBatchVisibility();
+    applyFilter();
+  }
+
+  // ── 状态筛选(复查用:快速只看未通过/未测/通过/未勾选)──────────────────
+  function renderFilters() {
+    dom.filters.textContent = "";
+    var lab = document.createElement("span");
+    lab.className = "flabel";
+    lab.textContent = "只看";
+    dom.filters.appendChild(lab);
+    FILTERS.forEach(function (f) {
+      var chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "chip" + (S.filter === f[0] ? " on" : "");
+      chip.textContent = f[1];
+      chip.addEventListener("click", function () {
+        S.filter = f[0];
+        renderFilters();
+        applyFilter();
+      });
+      dom.filters.appendChild(chip);
+    });
+  }
+
+  function applyFilter() {
+    var sections = dom.list.querySelectorAll("section[data-batch]");
+    for (var i = 0; i < sections.length; i += 1) {
+      var secwraps = sections[i].querySelectorAll(".secwrap");
+      var batchVisible = 0;
+      for (var j = 0; j < secwraps.length; j += 1) {
+        var cards = secwraps[j].querySelectorAll(".item");
+        var visible = 0;
+        for (var k = 0; k < cards.length; k += 1) {
+          var st = cards[k].dataset.status || "none";
+          var show = S.filter === "all" || st === S.filter;
+          cards[k].hidden = !show;
+          if (show) { visible += 1; }
+        }
+        secwraps[j].hidden = visible === 0;
+        batchVisible += visible;
+      }
+      // 批次被芯片关掉时 hidden 已为真,别碰;选中批次在当前筛选下空了就连标题一起收
+      if (S.selected.indexOf(sections[i].dataset.batch) >= 0) {
+        sections[i].hidden = batchVisible === 0;
+      }
+    }
+  }
+
+  function boot() {
+    fetch("/api/state").then(function (res) {
+      if (!res.ok) { throw new Error("HTTP " + res.status); }
+      return res.json();
+    }).then(function (data) {
+      S.checklist = (data.checklist && data.checklist.batches) ? data.checklist : { batches: [] };
+      S.results = data.results || {};
+      S.entries.bug = data.bugs || [];
+      S.entries.req = data.requirements || [];
+      var ids = S.checklist.batches.map(function (b) { return b.id; });
+      S.selected = defaultSelection(ids);
+      renderChips();
+      renderFilters();
+      renderList();
+      KINDS.forEach(renderEntries);
+      updateProgress();
+      paintDot();
+      initBatchPicker();
+      initChipDesktopScroll();
+      scrollSelectedChipIntoView();
+    }).catch(function (err) {
+      dom.progress.textContent = "载入失败：" + err.message + "，下拉刷新重试。";
+      if (window.console) { console.error(err); }
+    });
+  }
+
+  boot();
+}());
+</script>
+</body>
+</html>
