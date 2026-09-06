@@ -7,7 +7,7 @@
 - 电脑上一条命令起服务(Python 3 标准库,单文件),手机连同一 Wi-Fi 用浏览器打开。
 - 测试者逐条勾「通过 / 未通过 / 未测试」,附文字、截图、录屏;清单以外的问题记「新 Bug」,想要的改进记「新需求」。
 - 一切自动保存到电脑磁盘的 JSON 与文件夹里,**智能体直接读盘处理反馈**,测试者不用再截图倒腾、整理成文发回对话。
-- 附带一份通用 **Agent Skill**(`SKILL.md`,遵循 [agentskills.io](https://agentskills.io) 开放格式,Claude Code、Codex、Cursor、Gemini CLI、OpenCode、Copilot,以及 Kimi Code、Qwen Code、通义灵码、Qoder、Trae、CodeBuddy / WorkBuddy、Deep Code 等都能直接加载):每批交付时怎么写复验清单、测完后怎么读盘归案、页面既有设计约定与踩坑。
+- 附带一份通用 **Agent Skill**(`SKILL.md`,遵循 [agentskills.io](https://agentskills.io) 开放格式,Claude Code、Codex、Cursor、Gemini CLI、OpenCode、Copilot,以及 Kimi Code、Qwen Code、通义灵码、Qoder、Trae、CodeBuddy、WorkBuddy、DeepSeek Harness 等都能直接加载):每批交付时怎么写复验清单、测完后怎么读盘归案、页面既有设计约定与踩坑。
 
 它来自一个 iOS App 的开发流程:几十个 TestFlight 批次、几百条复验条目全靠它跑完。
 界面语言跟随测试者浏览器(简中 / 繁中 / 英 / 日 / 韩 / 西 / 法 / 德 / 葡 / 俄),移动优先(约 393pt 宽设计,桌面居中限宽)。
@@ -73,7 +73,7 @@ python3 summarize.py --root .
 
 | 宿主 | 项目级(随仓库走) | 全局(本机所有项目) |
 |---|---|---|
-| 通用路径(Codex、Cursor、Gemini CLI、OpenCode、Copilot、Cline、Zed、Warp、Amp、Kimi、Deep Code 都认) | `.agents/skills/` | `~/.agents/skills/` |
+| 通用路径(Codex、Cursor、Gemini CLI、OpenCode、Copilot、Cline、Zed、Warp、Amp、Kimi、DeepSeek Harness 都认) | `.agents/skills/` | `~/.agents/skills/` |
 | Claude Code | `.claude/skills/` | `~/.claude/skills/` |
 | Codex | `.agents/skills/` | `~/.agents/skills/`(早期版本为 `~/.codex/skills/`) |
 | Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
@@ -92,9 +92,9 @@ python3 summarize.py --root .
 | 通义灵码 Lingma | `.lingma/skills/` | `~/.lingma/skills/` |
 | Qoder | `.qoder/skills/` | `~/.qoder/skills/`(国内版 `~/.qoder-cn/skills/`) |
 | Trae(字节) | `.trae/skills/` | `~/.trae/skills/`(国内版 `~/.trae-cn/skills/`) |
-| CodeBuddy(腾讯) | `.codebuddy/skills/` | `~/.codebuddy/skills/` |
-| WorkBuddy(腾讯) | — | `~/.workbuddy/skills/`(也可把 SKILL.md 直接拖进对话导入,或从 SkillHub 安装) |
-| Deep Code(DeepSeek 终端智能体) | `.deepcode/skills/`(也认 `.agents/skills/`) | `~/.deepcode/skills/`(也认 `~/.agents/skills/`) |
+| [CodeBuddy](https://www.codebuddy.cn/docs/ide/Introduction)(腾讯,编程工具) | `.codebuddy/skills/` | `~/.codebuddy/skills/` |
+| [WorkBuddy](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Product-Guide)(腾讯,办公智能体工作台) | — | `~/.workbuddy/skills/`(也可把 SKILL.md 直接拖进对话导入,或从 SkillHub 安装) |
+| [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/skill/skill-filesystem/README.md) | `.dsh/skills/`(也认 `.agents/skills/`) | `~/.dsh/skills/`(也认 `~/.agents/skills/`) |
 | MiniMax Code | `.minimax/skills/` | `~/.minimax/skills/` |
 | iFlow CLI(心流) | `.iflow/skills/` | `~/.iflow/skills/` |
 
@@ -104,7 +104,7 @@ python3 summarize.py --root .
 例如:
 
 ```bash
-git clone https://github.com/ccc333cn/feedback-station.git .agents/skills/feedback-station     # Codex / Cursor / Gemini CLI / OpenCode / Copilot / Kimi / Deep Code 通用
+git clone https://github.com/ccc333cn/feedback-station.git .agents/skills/feedback-station     # Codex / Cursor / Gemini CLI / OpenCode / Copilot / Kimi / DeepSeek Harness 通用
 git clone https://github.com/ccc333cn/feedback-station.git .claude/skills/feedback-station     # Claude Code
 git clone https://github.com/ccc333cn/feedback-station.git .qwen/skills/feedback-station       # Qwen Code(其他国内宿主同理换目录)
 ```

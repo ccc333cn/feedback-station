@@ -7,7 +7,7 @@ A **zero-dependency** LAN feedback site built for the loop *a coding agent ships
 - One command on the computer starts the server (Python 3 standard library, single file); a phone on the same Wi-Fi opens it in a browser.
 - Testers mark each checklist item **pass / fail / not tested**, attach notes, screenshots and screen recordings; anything outside the checklist goes in as a **new bug** or a **feature request**.
 - Everything is saved to JSON files and folders on the computer's disk. **The agent reads the feedback straight from disk**, so testers no longer shuttle screenshots around or write up reports for the chat.
-- Ships with an agent-agnostic **Agent Skill** (`SKILL.md`, in the open [agentskills.io](https://agentskills.io) format, loadable by Claude Code, Codex, Cursor, Gemini CLI, OpenCode, GitHub Copilot, Kimi Code, Qwen Code, Lingma, Qoder, Trae, CodeBuddy / WorkBuddy, Deep Code and more): how to write the verification checklist for each delivery, how to read the results afterwards, and the UI conventions and pitfalls worth knowing.
+- Ships with an agent-agnostic **Agent Skill** (`SKILL.md`, in the open [agentskills.io](https://agentskills.io) format, loadable by Claude Code, Codex, Cursor, Gemini CLI, OpenCode, GitHub Copilot, Kimi Code, Qwen Code, Lingma, Qoder, Trae, CodeBuddy, WorkBuddy, DeepSeek Harness and more): how to write the verification checklist for each delivery, how to read the results afterwards, and the UI conventions and pitfalls worth knowing.
 
 It came out of an iOS app's development process: dozens of TestFlight batches and hundreds of verification items ran through it.
 The UI follows the tester's browser language (Simplified and Traditional Chinese, English, Japanese, Korean, Spanish, French, German, Portuguese, Russian) and is mobile-first (designed at ~393pt wide, centered and width-capped on desktop).
@@ -68,7 +68,7 @@ python3 summarize.py --root .
 
 | Host | Project-level (travels with the repo) | Global (all projects on this machine) |
 |---|---|---|
-| Shared path (Codex, Cursor, Gemini CLI, OpenCode, Copilot, Cline, Zed, Warp, Amp, Kimi, Deep Code all read it) | `.agents/skills/` | `~/.agents/skills/` |
+| Shared path (Codex, Cursor, Gemini CLI, OpenCode, Copilot, Cline, Zed, Warp, Amp, Kimi, DeepSeek Harness all read it) | `.agents/skills/` | `~/.agents/skills/` |
 | Claude Code | `.claude/skills/` | `~/.claude/skills/` |
 | Codex | `.agents/skills/` | `~/.agents/skills/` (older versions: `~/.codex/skills/`) |
 | Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
@@ -87,9 +87,9 @@ python3 summarize.py --root .
 | Lingma (Tongyi) | `.lingma/skills/` | `~/.lingma/skills/` |
 | Qoder | `.qoder/skills/` | `~/.qoder/skills/` (CN edition: `~/.qoder-cn/skills/`) |
 | Trae (ByteDance) | `.trae/skills/` | `~/.trae/skills/` (CN edition: `~/.trae-cn/skills/`) |
-| CodeBuddy (Tencent) | `.codebuddy/skills/` | `~/.codebuddy/skills/` |
-| WorkBuddy (Tencent) | — | `~/.workbuddy/skills/` (or drag `SKILL.md` into the chat, or install from SkillHub) |
-| Deep Code (DeepSeek's terminal agent) | `.deepcode/skills/` (also reads `.agents/skills/`) | `~/.deepcode/skills/` (also reads `~/.agents/skills/`) |
+| [CodeBuddy](https://www.codebuddy.cn/docs/ide/Introduction) (Tencent, coding tools) | `.codebuddy/skills/` | `~/.codebuddy/skills/` |
+| [WorkBuddy](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Product-Guide) (Tencent, desktop workspace for office tasks) | — | `~/.workbuddy/skills/` (or drag `SKILL.md` into the chat, or install from SkillHub) |
+| [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/skill/skill-filesystem/README.md) | `.dsh/skills/` (also reads `.agents/skills/`) | `~/.dsh/skills/` (also reads `~/.agents/skills/`) |
 | MiniMax Code | `.minimax/skills/` | `~/.minimax/skills/` |
 | iFlow CLI | `.iflow/skills/` | `~/.iflow/skills/` |
 
@@ -99,7 +99,7 @@ If you run DeepSeek, Kimi or Qwen models inside another host (Claude Code, Cline
 For example:
 
 ```bash
-git clone https://github.com/ccc333cn/feedback-station.git .agents/skills/feedback-station     # Codex / Cursor / Gemini CLI / OpenCode / Copilot / Kimi / Deep Code
+git clone https://github.com/ccc333cn/feedback-station.git .agents/skills/feedback-station     # Codex / Cursor / Gemini CLI / OpenCode / Copilot / Kimi / DeepSeek Harness
 git clone https://github.com/ccc333cn/feedback-station.git .claude/skills/feedback-station     # Claude Code
 git clone https://github.com/ccc333cn/feedback-station.git .qwen/skills/feedback-station       # Qwen Code (other hosts: swap the directory)
 ```
