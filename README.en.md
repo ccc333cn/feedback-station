@@ -60,55 +60,21 @@ Summarize the feedback (latest batch by default; `--all` for everything, `--batc
 python3 summarize.py --root .
 ```
 
-## Using it as an Agent Skill (Claude Code / Codex / Cursor / Gemini CLI / OpenCode / Copilot …)
+## Using it as an Agent Skill
 
-`SKILL.md` follows the open [Agent Skills](https://agentskills.io) format and isn't tied to any one agent. Clone the whole repo as a skill directory (the directory must be named `feedback-station`) into wherever your host looks for skills:
-
-**Common hosts**
-
-| Host | Project-level (travels with the repo) | Global (all projects on this machine) |
-|---|---|---|
-| Shared path (Codex, Cursor, Gemini CLI, OpenCode, Copilot, Cline, Zed, Warp, Amp, Kimi, DeepSeek Harness all read it) | `.agents/skills/` | `~/.agents/skills/` |
-| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
-| Codex | `.agents/skills/` | `~/.agents/skills/` (older versions: `~/.codex/skills/`) |
-| Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
-| Gemini CLI | `.gemini/skills/` | `~/.gemini/skills/` |
-| OpenCode | `.opencode/skills/` (also reads `.claude/skills/`) | `~/.config/opencode/skills/` (also reads `~/.claude/skills/`) |
-| GitHub Copilot / VS Code | `.github/skills/` (also reads `.claude/skills/`) | `~/.copilot/skills/` |
-| Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
-| Roo Code / Kilo Code | `.roo/skills/` / `.kilocode/skills/` | `~/.roo/skills/` / `~/.kilocode/skills/` |
-
-**Hosts popular in China**
-
-| Host | Project-level | Global |
-|---|---|---|
-| Kimi Code CLI (Moonshot) | `.kimi/skills/` (also reads `.agents/skills/`) | `~/.kimi/skills/` |
-| Qwen Code (Alibaba) | `.qwen/skills/` | `~/.qwen/skills/` |
-| Lingma (Tongyi) | `.lingma/skills/` | `~/.lingma/skills/` |
-| Qoder | `.qoder/skills/` | `~/.qoder/skills/` (CN edition: `~/.qoder-cn/skills/`) |
-| Trae (ByteDance) | `.trae/skills/` | `~/.trae/skills/` (CN edition: `~/.trae-cn/skills/`) |
-| [CodeBuddy](https://www.codebuddy.cn/docs/ide/Introduction) (Tencent, coding tools) | `.codebuddy/skills/` | `~/.codebuddy/skills/` |
-| [WorkBuddy](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Product-Guide) (Tencent, desktop workspace for office tasks) | — | `~/.workbuddy/skills/` (or drag `SKILL.md` into the chat, or install from SkillHub) |
-| [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/skill/skill-filesystem/README.md) | `.dsh/skills/` (also reads `.agents/skills/`) | `~/.dsh/skills/` (also reads `~/.agents/skills/`) |
-| MiniMax Code | `.minimax/skills/` | `~/.minimax/skills/` |
-| iFlow CLI | `.iflow/skills/` | `~/.iflow/skills/` |
-
-For hosts not listed here, see [agentskills.io/clients](https://agentskills.io/clients) and the directory table in [vercel-labs/skills](https://github.com/vercel-labs/skills) (which also offers `npx skills add <repo>` to install into any host in one step).
-If you run DeepSeek, Kimi or Qwen models inside another host (Claude Code, Cline, OpenClaw …), install by that host's path — the skill is model-agnostic.
-
-For example:
+`SKILL.md` follows the open [Agent Skills](https://agentskills.io) format, so Claude Code, Codex, Cursor, Gemini CLI, OpenCode, Copilot,
+Kimi Code, Qwen Code, Lingma, Qoder, Trae, CodeBuddy, WorkBuddy, DeepSeek Harness and any other skills-aware agent can load it, whatever model it runs.
+Clone the repo into your host's skills directory (keep the directory name `feedback-station`), or simply hand the repo URL to the agent and let it install the skill itself — it knows where skills go:
 
 ```bash
-git clone https://github.com/ccc333cn/feedback-station.git .agents/skills/feedback-station     # Codex / Cursor / Gemini CLI / OpenCode / Copilot / Kimi / DeepSeek Harness
-git clone https://github.com/ccc333cn/feedback-station.git .claude/skills/feedback-station     # Claude Code
-git clone https://github.com/ccc333cn/feedback-station.git .qwen/skills/feedback-station       # Qwen Code (other hosts: swap the directory)
+git clone https://github.com/ccc333cn/feedback-station.git <your host's skills dir>/feedback-station
 ```
 
 Then tell the agent to "set up the feedback station". The skill walks it through picking a `<root>` directory in your project (`Tools/FeedbackStation/` is suggested), starting the server with `--root`, and handing you the URL; on each delivery it writes the verification checklist to the head of `checklist.json`; when you say "done testing" it reads the results from disk.
 
 The skill body is written in Chinese; its `description` carries English trigger phrases, and any current model reads the instructions fine. It tells the agent to write checklist items, the page title and its replies in the user's own language.
 
-Agents without a skill mechanism (or a plain chat UI) can use it too: paste `SKILL.md` into the system prompt or the conversation as the operating manual. It only needs a host that can run shell commands and read/write files; there are no host-specific tool names (one note in "Known pitfalls" is marked Claude Code-only).
+Agents without a skill mechanism (or a plain chat UI) can use it too: paste `SKILL.md` into the system prompt or the conversation as the operating manual. It only needs a host that can run shell commands and read/write files.
 
 The skill directory holds only code; the checklist and data live in your project's `<root>`, so updating the skill never touches your data.
 
