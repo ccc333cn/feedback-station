@@ -64,56 +64,21 @@ python3 server.py --title "我的 App · 真机反馈"
 python3 summarize.py --root . 
 ```
 
-## 作为 Agent Skill 使用(Claude Code / Codex / Cursor / Gemini CLI / OpenCode / Copilot …)
+## 作为 Agent Skill 使用
 
-`SKILL.md` 遵循 [Agent Skills](https://agentskills.io) 开放格式,不绑定任何一家智能体。
-把整个仓库 clone 成一个 skill 目录(目录名必须叫 `feedback-station`),放到你所用宿主认的位置即可:
-
-**国际常见宿主**
-
-| 宿主 | 项目级(随仓库走) | 全局(本机所有项目) |
-|---|---|---|
-| 通用路径(Codex、Cursor、Gemini CLI、OpenCode、Copilot、Cline、Zed、Warp、Amp、Kimi、DeepSeek Harness 都认) | `.agents/skills/` | `~/.agents/skills/` |
-| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
-| Codex | `.agents/skills/` | `~/.agents/skills/`(早期版本为 `~/.codex/skills/`) |
-| Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
-| Gemini CLI | `.gemini/skills/` | `~/.gemini/skills/` |
-| OpenCode | `.opencode/skills/`(也认 `.claude/skills/`) | `~/.config/opencode/skills/`(也认 `~/.claude/skills/`) |
-| GitHub Copilot / VS Code | `.github/skills/`(也认 `.claude/skills/`) | `~/.copilot/skills/` |
-| Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
-| Roo Code / Kilo Code | `.roo/skills/` / `.kilocode/skills/` | `~/.roo/skills/` / `~/.kilocode/skills/` |
-
-**国内常见宿主**
-
-| 宿主 | 项目级(随仓库走) | 全局(本机所有项目) |
-|---|---|---|
-| Kimi Code CLI(月之暗面) | `.kimi/skills/`(也认 `.agents/skills/`) | `~/.kimi/skills/` |
-| Qwen Code(阿里) | `.qwen/skills/` | `~/.qwen/skills/` |
-| 通义灵码 Lingma | `.lingma/skills/` | `~/.lingma/skills/` |
-| Qoder | `.qoder/skills/` | `~/.qoder/skills/`(国内版 `~/.qoder-cn/skills/`) |
-| Trae(字节) | `.trae/skills/` | `~/.trae/skills/`(国内版 `~/.trae-cn/skills/`) |
-| [CodeBuddy](https://www.codebuddy.cn/docs/ide/Introduction)(腾讯,编程工具) | `.codebuddy/skills/` | `~/.codebuddy/skills/` |
-| [WorkBuddy](https://www.codebuddy.cn/docs/workbuddy/From-Beginner-to-Expert-Guide/Product-Guide)(腾讯,办公智能体工作台) | — | `~/.workbuddy/skills/`(也可把 SKILL.md 直接拖进对话导入,或从 SkillHub 安装) |
-| [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/skill/skill-filesystem/README.md) | `.dsh/skills/`(也认 `.agents/skills/`) | `~/.dsh/skills/`(也认 `~/.agents/skills/`) |
-| MiniMax Code | `.minimax/skills/` | `~/.minimax/skills/` |
-| iFlow CLI(心流) | `.iflow/skills/` | `~/.iflow/skills/` |
-
-没列到的宿主,查 [agentskills.io/clients](https://agentskills.io/clients) 和 [vercel-labs/skills](https://github.com/vercel-labs/skills) 的目录表(后者也提供 `npx skills add <repo>` 一键装进任一宿主)。
-用 DeepSeek、Kimi、Qwen 这些模型但跑在 Claude Code / Cline / OpenClaw 等别家宿主上的,按宿主的路径装即可,skill 与模型无关。
-
-例如:
+`SKILL.md` 遵循 [Agent Skills](https://agentskills.io) 开放格式,Claude Code、Codex、Cursor、Gemini CLI、OpenCode、Copilot、
+Kimi Code、Qwen Code、通义灵码、Qoder、Trae、CodeBuddy、WorkBuddy、DeepSeek Harness 等都能直接加载,与模型无关。
+把仓库 clone 进你所用宿主的 skills 目录(目录名保持 `feedback-station`),或者直接把仓库地址发给智能体让它自己装——它知道该放哪:
 
 ```bash
-git clone https://github.com/ccc333cn/feedback-station.git .agents/skills/feedback-station     # Codex / Cursor / Gemini CLI / OpenCode / Copilot / Kimi / DeepSeek Harness 通用
-git clone https://github.com/ccc333cn/feedback-station.git .claude/skills/feedback-station     # Claude Code
-git clone https://github.com/ccc333cn/feedback-station.git .qwen/skills/feedback-station       # Qwen Code(其他国内宿主同理换目录)
+git clone https://github.com/ccc333cn/feedback-station.git <宿主的 skills 目录>/feedback-station
 ```
 
 然后对智能体说「接入反馈站」。skill 会引导它:在项目里选一个 `<root>` 目录(建议 `Tools/FeedbackStation/`),
 用 `--root` 起服务,把 URL 给你;每批交付时把复验清单写进 `checklist.json` 头部;你说「测完了」它就读盘归案。
 
-不支持 skill 机制的智能体(或普通聊天界面)也能用:把 `SKILL.md` 全文贴进系统提示或对话当操作手册即可。
-它只要求宿主能跑 shell 命令、读写文件,没有任何宿主专属的工具名(仅「已知坑」里有一条标注为 Claude Code 专属)。
+不支持 skill 机制的智能体(或普通聊天界面)也能用:把 `SKILL.md` 全文贴进系统提示或对话当操作手册即可,
+它只要求宿主能跑 shell 命令、读写文件。
 
 skill 目录只放代码,清单与数据都在你项目的 `<root>` 里,更新 skill 不会碰到数据。
 
